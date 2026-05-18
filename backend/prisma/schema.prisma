@@ -1,0 +1,229 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  TEACHER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+}
+
+enum LessonType {
+  LECTURE
+  PRACTICE
+}
+
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      UserRole
+  createdAt DateTime @default(now())
+
+  teacher Teacher?
+}
+
+model Teacher {
+  id        Int      @id @default(autoincrement())
+  fullName  String
+  cardNo    String?  @unique
+  userId    Int      @unique
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  schedules  Schedule[]
+  changeLogs AttendanceChangeLog[]
+}
+
+model Subject {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  schedules Schedule[]
+
+  subdivisions SubjectSubdivision[]
+}
+
+model SubjectSubdivision {
+  id Int @id @default(autoincrement())
+
+  name String // "1ПГ"
+
+  subjectId Int
+  groupId   Int
+
+  createdAt DateTime @default(now())
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  group AcademicGroup @relation(fields: [groupId], references: [id])
+
+  students SubjectSubdivisionStudent[]
+
+  schedules Schedule[]
+
+  @@unique([subjectId, groupId, name])
+}
+
+model SubjectSubdivisionStudent {
+  id Int @id @default(autoincrement())
+
+  subdivisionId Int
+  studentId     Int
+
+  subdivision SubjectSubdivision @relation(fields: [subdivisionId], references: [id])
+
+  student Student @relation(fields: [studentId], references: [id])
+
+  @@unique([subdivisionId, studentId])
+}
+
+model AcademicGroup {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  students Student[]
+
+  schedules Schedule[]
+
+  subjectSubdivisions SubjectSubdivision[]
+}
+
+model Student {
+  id            Int    @id @default(autoincrement())
+  fullName      String
+  studentCardNo String @unique
+
+  groupId Int
+
+  createdAt DateTime @default(now())
+
+  group AcademicGroup @relation(fields: [groupId], references: [id])
+
+  attendances Attendance[]
+
+  subjectSubdivisions SubjectSubdivisionStudent[]
+}
+
+model Room {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  devices   Device[]
+  schedules Schedule[]
+}
+
+model Device {
+  id Int @id @default(autoincrement())
+
+  serialNumber String @unique
+  roomId       Int
+
+  createdAt DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id])
+}
+
+model PairTime {
+  id Int @id @default(autoincrement())
+
+  pairNumber Int @unique
+
+  startTime String
+  endTime   String
+
+  schedules Schedule[]
+}
+
+model Schedule {
+  id Int @id @default(autoincrement())
+
+  weekday WeekDay
+
+  lessonType LessonType
+
+  subjectId  Int
+  teacherId  Int
+  roomId     Int
+  pairTimeId Int
+
+  groupId Int
+
+  subdivisionId Int?
+
+  createdAt DateTime @default(now())
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  room Room @relation(fields: [roomId], references: [id])
+
+  pairTime PairTime @relation(fields: [pairTimeId], references: [id])
+
+  group AcademicGroup @relation(fields: [groupId], references: [id])
+
+  subdivision SubjectSubdivision? @relation(fields: [subdivisionId], references: [id])
+
+  attendances Attendance[]
+}
+
+model Attendance {
+  id Int @id @default(autoincrement())
+
+  studentId  Int
+  scheduleId Int
+
+  status AttendanceStatus
+
+  checkIn  DateTime?
+  checkOut DateTime?
+
+  isManualEdited Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  student  Student  @relation(fields: [studentId], references: [id])
+  schedule Schedule @relation(fields: [scheduleId], references: [id])
+
+  changeLogs AttendanceChangeLog[]
+
+  @@unique([studentId, scheduleId])
+}
+
+model AttendanceChangeLog {
+  id Int @id @default(autoincrement())
+
+  attendanceId Int
+  teacherId    Int
+
+  oldStatus AttendanceStatus
+  newStatus AttendanceStatus
+
+  changedAt DateTime @default(now())
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id])
+  teacher    Teacher    @relation(fields: [teacherId], references: [id])
+}
