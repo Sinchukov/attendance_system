@@ -34,7 +34,11 @@ export class SubjectsService {
       },
 
       include: {
-        schedules: true,
+        scheduleTemplates: true,
+
+        sessions: true,
+
+        subdivisions: true,
       },
     });
   }

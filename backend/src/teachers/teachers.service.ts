@@ -53,12 +53,23 @@ export class TeachersService {
       include: {
         user: true,
 
-        schedules: {
+        scheduleTemplates: {
           include: {
             subject: true,
             group: true,
             room: true,
             pairTime: true,
+            subdivision: true,
+          },
+        },
+
+        sessions: {
+          include: {
+            subject: true,
+            group: true,
+            room: true,
+            pairTime: true,
+            subdivision: true,
           },
         },
       },

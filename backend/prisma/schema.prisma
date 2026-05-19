@@ -51,8 +51,9 @@ model Teacher {
 
   user User @relation(fields: [userId], references: [id])
 
-  schedules  Schedule[]
-  changeLogs AttendanceChangeLog[]
+  scheduleTemplates ScheduleTemplate[]
+  sessions          LessonSession[]
+  changeLogs        AttendanceChangeLog[]
 }
 
 model Subject {
@@ -60,7 +61,8 @@ model Subject {
   name      String   @unique
   createdAt DateTime @default(now())
 
-  schedules Schedule[]
+  scheduleTemplates ScheduleTemplate[]
+  sessions          LessonSession[]
 
   subdivisions SubjectSubdivision[]
 }
@@ -81,7 +83,8 @@ model SubjectSubdivision {
 
   students SubjectSubdivisionStudent[]
 
-  schedules Schedule[]
+  scheduleTemplates ScheduleTemplate[]
+  sessions          LessonSession[]
 
   @@unique([subjectId, groupId, name])
 }
@@ -106,7 +109,8 @@ model AcademicGroup {
 
   students Student[]
 
-  schedules Schedule[]
+  scheduleTemplates ScheduleTemplate[]
+  sessions          LessonSession[]
 
   subjectSubdivisions SubjectSubdivision[]
 }
@@ -131,8 +135,9 @@ model Room {
   id   Int    @id @default(autoincrement())
   name String @unique
 
-  devices   Device[]
-  schedules Schedule[]
+  devices           Device[]
+  scheduleTemplates ScheduleTemplate[]
+  sessions          LessonSession[]
 }
 
 model Device {
@@ -154,10 +159,11 @@ model PairTime {
   startTime String
   endTime   String
 
-  schedules Schedule[]
+  scheduleTemplates ScheduleTemplate[]
+  sessions          LessonSession[]
 }
 
-model Schedule {
+model ScheduleTemplate {
   id Int @id @default(autoincrement())
 
   weekday WeekDay
@@ -173,6 +179,8 @@ model Schedule {
 
   subdivisionId Int?
 
+  isActive Boolean @default(true)
+
   createdAt DateTime @default(now())
 
   subject Subject @relation(fields: [subjectId], references: [id])
@@ -187,14 +195,55 @@ model Schedule {
 
   subdivision SubjectSubdivision? @relation(fields: [subdivisionId], references: [id])
 
+  sessions LessonSession[]
+}
+
+model LessonSession {
+  id Int @id @default(autoincrement())
+
+  lessonDate DateTime
+
+  lessonType LessonType
+
+  subjectId  Int
+  teacherId  Int
+  roomId     Int
+  pairTimeId Int
+
+  groupId Int
+
+  subdivisionId Int?
+
+  templateId Int?
+
+  isCancelled Boolean @default(false)
+
+  cancellationReason String?
+
+  createdAt DateTime @default(now())
+
+  subject Subject @relation(fields: [subjectId], references: [id])
+
+  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+  room Room @relation(fields: [roomId], references: [id])
+
+  pairTime PairTime @relation(fields: [pairTimeId], references: [id])
+
+  group AcademicGroup @relation(fields: [groupId], references: [id])
+
+  subdivision SubjectSubdivision? @relation(fields: [subdivisionId], references: [id])
+
+  template ScheduleTemplate? @relation(fields: [templateId], references: [id])
+
   attendances Attendance[]
 }
 
 model Attendance {
   id Int @id @default(autoincrement())
 
-  studentId  Int
-  scheduleId Int
+  studentId       Int
+  lessonSessionId Int
 
   status AttendanceStatus
 
@@ -205,12 +254,13 @@ model Attendance {
 
   createdAt DateTime @default(now())
 
-  student  Student  @relation(fields: [studentId], references: [id])
-  schedule Schedule @relation(fields: [scheduleId], references: [id])
+  student Student @relation(fields: [studentId], references: [id])
+
+  lessonSession LessonSession @relation(fields: [lessonSessionId], references: [id])
 
   changeLogs AttendanceChangeLog[]
 
-  @@unique([studentId, scheduleId])
+  @@unique([studentId, lessonSessionId])
 }
 
 model AttendanceChangeLog {

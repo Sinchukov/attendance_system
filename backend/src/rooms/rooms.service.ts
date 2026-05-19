@@ -33,7 +33,10 @@ export class RoomsService {
 
       include: {
         devices: true,
-        schedules: true,
+
+        scheduleTemplates: true,
+
+        sessions: true,
       },
     });
   }

@@ -52,21 +52,23 @@ export class AttendanceService {
       5: WeekDay.FRIDAY,
       6: WeekDay.SATURDAY,
     };
+
     if (!weekdayMap[jsDay]) {
       throw new NotFoundException('Сегодня нет учебных занятий');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const currentWeekday = weekdayMap[jsDay];
 
     // 5. ТЕКУЩЕЕ ВРЕМЯ HH:mm
     const currentTime = now.toTimeString().slice(0, 5);
 
     // 6. ИЩЕМ ТЕКУЩУЮ ПАРУ
-    const schedules = await this.prisma.schedule.findMany({
+    const sessions = await this.prisma.lessonSession.findMany({
       where: {
-        weekday: currentWeekday,
-
         roomId: device.roomId,
+
+        isCancelled: false,
       },
 
       include: {
@@ -74,27 +76,34 @@ export class AttendanceService {
       },
     });
 
-    const currentSchedule = schedules.find((schedule) => {
+    const currentSession = sessions.find((lessonSession) => {
       return (
-        currentTime >= schedule.pairTime.startTime &&
-        currentTime <= schedule.pairTime.endTime
+        currentTime >= lessonSession.pairTime.startTime &&
+        currentTime <= lessonSession.pairTime.endTime
       );
     });
 
-    if (!currentSchedule) {
+    if (!currentSession) {
       throw new NotFoundException('Сейчас нет пары в этой аудитории');
     }
 
+    // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА ДНЯ НЕДЕЛИ
+    const sessionWeekDay = currentSession.lessonDate.getDay();
+
+    if (sessionWeekDay !== jsDay) {
+      throw new NotFoundException('Сегодня нет пары в этой аудитории');
+    }
+
     // 7. ПРОВЕРКА ГРУППЫ
-    if (currentSchedule.groupId !== student.groupId) {
+    if (currentSession.groupId !== student.groupId) {
       throw new NotFoundException('Студент не относится к этой паре');
     }
 
     // 8. ПРОВЕРКА ПОДГРУППЫ
-    if (currentSchedule.subdivisionId) {
+    if (currentSession.subdivisionId) {
       const exists = await this.prisma.subjectSubdivisionStudent.findFirst({
         where: {
-          subdivisionId: currentSchedule.subdivisionId,
+          subdivisionId: currentSession.subdivisionId,
 
           studentId: student.id,
         },
@@ -108,16 +117,16 @@ export class AttendanceService {
     // 9. ПРОВЕРЯЕМ ATTENDANCE
     const existingAttendance = await this.prisma.attendance.findUnique({
       where: {
-        studentId_scheduleId: {
+        studentId_lessonSessionId: {
           studentId: student.id,
 
-          scheduleId: currentSchedule.id,
+          lessonSessionId: currentSession.id,
         },
       },
     });
 
     // 10. ОПРЕДЕЛЯЕМ СТАТУС
-    const pairStart = currentSchedule.pairTime.startTime;
+    const pairStart = currentSession.pairTime.startTime;
 
     const isLate =
       currentTime > '09:15'
@@ -144,7 +153,7 @@ export class AttendanceService {
       data: {
         studentId: student.id,
 
-        scheduleId: currentSchedule.id,
+        lessonSessionId: currentSession.id,
 
         status,
 
@@ -156,11 +165,13 @@ export class AttendanceService {
       include: {
         student: true,
 
-        schedule: {
+        lessonSession: {
           include: {
             subject: true,
             teacher: true,
             room: true,
+            pairTime: true,
+            group: true,
           },
         },
       },
