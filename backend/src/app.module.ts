@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-
+import { LessonSessionsModule } from './lesson-sessions/lesson-sessions.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { PairTimesModule } from './pair-times/pair-times.module';
 import { AcademicGroupsModule } from './academic-groups/academic-groups.module';
@@ -16,6 +16,7 @@ import { AttendanceModule } from './attendance/attendance.module';
   imports: [
     PrismaModule,
     PairTimesModule,
+    LessonSessionsModule,
     AcademicGroupsModule,
     StudentsModule,
     ScheduleModule,
