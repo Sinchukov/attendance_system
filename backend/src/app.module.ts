@@ -11,6 +11,7 @@ import { TeachersModule } from './teachers/teachers.module';
 import { SubjectSubdivisionsModule } from './subject-subdivisions/subject-subdivisions.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { ScheduleTemplatesModule } from './schedule-templates/schedule-templates.module';
+import { SubjectSubdivisionStudentsModule } from './subject-subdivision-students/subject-subdivision-students.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { ScheduleTemplatesModule } from './schedule-templates/schedule-templates
     SubjectSubdivisionsModule,
     AttendanceModule,
     ScheduleTemplatesModule,
+    SubjectSubdivisionStudentsModule,
   ],
 })
 export class AppModule {}

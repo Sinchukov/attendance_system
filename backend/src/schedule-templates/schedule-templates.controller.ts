@@ -1,8 +1,14 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
-
-import { ScheduleTemplatesService } from './schedule-templates.service';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+} from '@nestjs/common';
 
 import { CreateScheduleTemplateDto } from './dto/create-schedule-template.dto';
+import { ScheduleTemplatesService } from './schedule-templates.service';
 
 @Controller('schedule-templates')
 export class ScheduleTemplatesController {
@@ -18,5 +24,13 @@ export class ScheduleTemplatesController {
   @Get()
   findAll() {
     return this.scheduleTemplatesService.findAll();
+  }
+
+  @Get('group/:groupId')
+  findByGroup(
+    @Param('groupId', ParseIntPipe)
+    groupId: number,
+  ) {
+    return this.scheduleTemplatesService.findByGroup(groupId);
   }
 }

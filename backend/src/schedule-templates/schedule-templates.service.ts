@@ -70,4 +70,24 @@ export class ScheduleTemplatesService {
       ],
     });
   }
+
+  async findByGroup(groupId: number) {
+    return this.prisma.scheduleTemplate.findMany({
+      where: {
+        groupId,
+      },
+
+      include: {
+        subject: true,
+
+        teacher: true,
+
+        room: true,
+
+        pairTime: true,
+
+        subdivision: true,
+      },
+    });
+  }
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post } from '@nestjs/common';
 
 import { LessonSessionsService } from './lesson-sessions.service';
 
@@ -6,9 +6,9 @@ import { LessonSessionsService } from './lesson-sessions.service';
 export class LessonSessionsController {
   constructor(private readonly lessonSessionsService: LessonSessionsService) {}
 
-  @Post('generate/:date')
-  generate(@Param('date') date: string) {
-    return this.lessonSessionsService.generateForDate(new Date(date));
+  @Post('generate')
+  generate(@Body() body: { date: string }) {
+    return this.lessonSessionsService.generateForDate(new Date(body.date));
   }
 
   @Get()

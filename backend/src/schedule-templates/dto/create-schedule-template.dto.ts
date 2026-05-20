@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { IsEnum, IsInt, IsOptional } from 'class-validator';
 
 import { LessonType, WeekDay } from '@prisma/client';
