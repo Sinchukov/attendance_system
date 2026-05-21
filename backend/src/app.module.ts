@@ -14,6 +14,8 @@ import { ScheduleTemplatesModule } from './schedule-templates/schedule-templates
 import { SubjectSubdivisionStudentsModule } from './subject-subdivision-students/subject-subdivision-students.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { SchedulerModule } from './scheduler/scheduler.module';
+import { AuthModule } from './auth/auth.module';
+import { ReportsModule } from './reports/reports.module';
 @Module({
   imports: [
     PrismaModule,
@@ -21,8 +23,10 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     LessonSessionsModule,
     AcademicGroupsModule,
     StudentsModule,
+    ReportsModule,
     RoomsModule,
     DevicesModule,
+    AuthModule,
     SubjectsModule,
     TeachersModule,
     SchedulerModule,
