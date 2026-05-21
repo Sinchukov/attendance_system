@@ -16,6 +16,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { AuthModule } from './auth/auth.module';
 import { ReportsModule } from './reports/reports.module';
+import { ConfigModule } from '@nestjs/config';
 @Module({
   imports: [
     PrismaModule,
@@ -34,6 +35,9 @@ import { ReportsModule } from './reports/reports.module';
     SubjectSubdivisionsModule,
     AttendanceModule,
     ScheduleTemplatesModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     SubjectSubdivisionStudentsModule,
   ],
 })
