@@ -3,7 +3,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
 import { Roles } from './roles.decorator';
 
-@Controller('admin')
+@Controller('ADMIN')
 export class AdminController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
