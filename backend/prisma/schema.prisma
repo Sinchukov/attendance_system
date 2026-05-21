@@ -42,6 +42,53 @@ model User {
   teacher Teacher?
 }
 
+enum AttendanceEventType {
+  CHECK_IN_SUCCESS
+  CHECK_OUT_SUCCESS
+
+  DUPLICATE_CHECK_IN
+  DUPLICATE_CHECK_OUT
+
+  SPAM_DETECTED
+
+  NO_ACTIVE_SESSION
+
+  STUDENT_NOT_FOUND
+  DEVICE_NOT_FOUND
+
+  INVALID_SESSION
+}
+
+model AttendanceAuditLog {
+  id Int @id @default(autoincrement())
+
+  cardNo String
+
+  deviceSerial String
+
+  eventType AttendanceEventType
+
+  message String?
+
+  createdAt DateTime @default(now())
+
+  studentId Int?
+
+  lessonSessionId Int?
+
+  attendanceId Int?
+
+  deviceId Int?
+
+  student Student? @relation(fields: [studentId], references: [id])
+
+  lessonSession LessonSession? @relation(fields: [lessonSessionId], references: [id])
+
+  attendance Attendance? @relation(fields: [attendanceId], references: [id])
+
+  device Device? @relation(fields: [deviceId], references: [id])
+}
+
 model Teacher {
   id        Int      @id @default(autoincrement())
   fullName  String
@@ -53,7 +100,7 @@ model Teacher {
 
   scheduleTemplates ScheduleTemplate[]
   sessions          LessonSession[]
-  changeLogs        AttendanceChangeLog[]
+  attendanceLogs    AttendanceChangeLog[]
 }
 
 model Subject {
@@ -129,6 +176,7 @@ model Student {
   attendances Attendance[]
 
   subjectSubdivisions SubjectSubdivisionStudent[]
+  auditLogs           AttendanceAuditLog[]
 }
 
 model Room {
@@ -143,12 +191,12 @@ model Room {
 model Device {
   id Int @id @default(autoincrement())
 
-  serialNumber String @unique
-  roomId       Int
-
-  createdAt DateTime @default(now())
-
-  room Room @relation(fields: [roomId], references: [id])
+  serialNumber   String                @unique
+  roomId         Int
+  attendanceLogs AttendanceChangeLog[]
+  createdAt      DateTime              @default(now())
+  auditLogs      AttendanceAuditLog[]
+  room           Room                  @relation(fields: [roomId], references: [id])
 }
 
 model PairTime {
@@ -237,6 +285,7 @@ model LessonSession {
   template ScheduleTemplate? @relation(fields: [templateId], references: [id])
 
   attendances Attendance[]
+  auditLogs   AttendanceAuditLog[]
 }
 
 model Attendance {
@@ -247,8 +296,7 @@ model Attendance {
 
   status AttendanceStatus
 
-  checkIn  DateTime?
-  checkOut DateTime?
+  checkIn DateTime?
 
   isManualEdited Boolean @default(false)
 
@@ -259,6 +307,7 @@ model Attendance {
   lessonSession LessonSession @relation(fields: [lessonSessionId], references: [id])
 
   changeLogs AttendanceChangeLog[]
+  auditLogs  AttendanceAuditLog[]
 
   @@unique([studentId, lessonSessionId])
 }
@@ -267,13 +316,24 @@ model AttendanceChangeLog {
   id Int @id @default(autoincrement())
 
   attendanceId Int
-  teacherId    Int
 
-  oldStatus AttendanceStatus
+  teacherId Int?
+
+  oldStatus AttendanceStatus?
+
   newStatus AttendanceStatus
 
-  changedAt DateTime @default(now())
+  action String
+
+  details String?
+
+  deviceId Int?
+
+  createdAt DateTime @default(now())
 
   attendance Attendance @relation(fields: [attendanceId], references: [id])
-  teacher    Teacher    @relation(fields: [teacherId], references: [id])
+
+  teacher Teacher? @relation(fields: [teacherId], references: [id])
+
+  device Device? @relation(fields: [deviceId], references: [id])
 }

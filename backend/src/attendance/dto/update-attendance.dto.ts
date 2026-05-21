@@ -1,11 +1,15 @@
 import { AttendanceStatus } from '@prisma/client';
 
+import { IsDateString, IsEnum, IsInt, IsOptional } from 'class-validator';
+
 export class UpdateAttendanceDto {
+  @IsEnum(AttendanceStatus)
   status!: AttendanceStatus;
 
-  teacherId!: number;
-
+  @IsOptional()
+  @IsDateString()
   checkIn?: Date;
 
-  checkOut?: Date;
+  @IsInt()
+  teacherId!: number;
 }

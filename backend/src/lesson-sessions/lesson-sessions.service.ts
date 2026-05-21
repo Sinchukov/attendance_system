@@ -1,17 +1,63 @@
-import { Injectable } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
+import { Injectable, NotFoundException } from '@nestjs/common';
+
+import { WeekDay } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 
-import {
-  LessonSession,
-  Student,
-  WeekDay,
-  AttendanceStatus,
-} from '@prisma/client';
+import { CancelLessonDto } from './dto/cancel-lesson.dto';
+import { CreateLessonSessionDto } from './dto/create-lesson-session.dto';
 
 @Injectable()
 export class LessonSessionsService {
   constructor(private prisma: PrismaService) {}
+
+  // =====================================================
+  // СОЗДАНИЕ КОНКРЕТНОЙ ПАРЫ ВРУЧНУЮ
+  // =====================================================
+
+  async create(dto: CreateLessonSessionDto) {
+    const session = await this.prisma.lessonSession.create({
+      data: {
+        lessonDate: new Date(dto.lessonDate),
+
+        lessonType: dto.lessonType,
+
+        subjectId: dto.subjectId,
+
+        teacherId: dto.teacherId,
+
+        roomId: dto.roomId,
+
+        pairTimeId: dto.pairTimeId,
+
+        groupId: dto.groupId,
+
+        subdivisionId: dto.subdivisionId ?? null,
+      },
+
+      include: {
+        subject: true,
+        teacher: true,
+        room: true,
+        pairTime: true,
+        group: true,
+        subdivision: true,
+      },
+    });
+
+    // АВТОМАТИЧЕСКИ СОЗДАЕМ ATTENDANCE
+    await this.generateAttendances(session.id);
+
+    return session;
+  }
+
+  // =====================================================
+  // ГЕНЕРАЦИЯ ПО ШАБЛОНАМ
+  // =====================================================
 
   async generateForDate(date: Date) {
     const jsDay = date.getDay();
@@ -40,10 +86,10 @@ export class LessonSessionsService {
       },
     });
 
-    const createdSessions: LessonSession[] = [];
+    const createdSessions: any[] = [];
 
     for (const template of templates) {
-      // ПРОВЕРЯЕМ СУЩЕСТВУЕТ ЛИ УЖЕ СЕССИЯ
+      // ПРОВЕРЯЕМ СУЩЕСТВУЕТ ЛИ УЖЕ
       const existingSession = await this.prisma.lessonSession.findFirst({
         where: {
           lessonDate: date,
@@ -56,7 +102,7 @@ export class LessonSessionsService {
         continue;
       }
 
-      // СОЗДАЕМ СЕССИЮ
+      // СОЗДАЕМ ПАРУ
       const session = await this.prisma.lessonSession.create({
         data: {
           lessonDate: date,
@@ -88,6 +134,10 @@ export class LessonSessionsService {
     return createdSessions;
   }
 
+  // =====================================================
+  // СОЗДАНИЕ ATTENDANCE
+  // =====================================================
+
   async generateAttendances(sessionId: number) {
     const session = await this.prisma.lessonSession.findUnique({
       where: {
@@ -99,9 +149,9 @@ export class LessonSessionsService {
       return;
     }
 
-    let students: Student[] = [];
+    let students: any[] = [];
 
-    // ЕСЛИ ЕСТЬ ПОДГРУППА
+    // ЕСЛИ ПОДГРУППА
     if (session.subdivisionId) {
       const subdivisionStudents =
         await this.prisma.subjectSubdivisionStudent.findMany({
@@ -123,19 +173,34 @@ export class LessonSessionsService {
       });
     }
 
-    // СОЗДАЕМ ABSENT ATTENDANCE
     for (const student of students) {
+      const exists = await this.prisma.attendance.findFirst({
+        where: {
+          studentId: student.id,
+
+          lessonSessionId: session.id,
+        },
+      });
+
+      if (exists) {
+        continue;
+      }
+
       await this.prisma.attendance.create({
         data: {
           studentId: student.id,
 
           lessonSessionId: session.id,
 
-          status: AttendanceStatus.ABSENT,
+          status: 'ABSENT',
         },
       });
     }
   }
+
+  // =====================================================
+  // ВСЕ ПАРЫ
+  // =====================================================
 
   async findAll() {
     return this.prisma.lessonSession.findMany({
@@ -158,6 +223,59 @@ export class LessonSessionsService {
           lessonDate: 'asc',
         },
       ],
+    });
+  }
+
+  // =====================================================
+  // ПАРЫ ПО ДАТЕ
+  // =====================================================
+
+  async findByDate(date: string) {
+    return this.prisma.lessonSession.findMany({
+      where: {
+        lessonDate: new Date(date),
+      },
+
+      include: {
+        subject: true,
+        teacher: true,
+        room: true,
+        pairTime: true,
+        group: true,
+        subdivision: true,
+      },
+
+      orderBy: {
+        pairTimeId: 'asc',
+      },
+    });
+  }
+
+  // =====================================================
+  // ОТМЕНА ПАРЫ
+  // =====================================================
+
+  async cancel(id: number, dto: CancelLessonDto) {
+    const session = await this.prisma.lessonSession.findUnique({
+      where: {
+        id,
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Занятие не найдено');
+    }
+
+    return this.prisma.lessonSession.update({
+      where: {
+        id,
+      },
+
+      data: {
+        isCancelled: true,
+
+        cancellationReason: dto.reason,
+      },
     });
   }
 }

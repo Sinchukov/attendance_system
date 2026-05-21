@@ -1,4 +1,12 @@
-import { Body, Controller, Post, Param, Patch } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 
 import { AttendanceService } from './attendance.service';
 
@@ -10,12 +18,20 @@ export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
   @Post('check-in')
-  checkIn(@Body() dto: CheckInDto) {
+  async checkIn(@Body() dto: CheckInDto) {
     return this.attendanceService.checkIn(dto);
   }
 
+  @Get()
+  async findAll() {
+    return this.attendanceService.findAll();
+  }
+
   @Patch(':id/manual-edit')
-  manualEdit(@Param('id') id: string, @Body() dto: UpdateAttendanceDto) {
-    return this.attendanceService.manualEdit(Number(id), dto);
+  async manualEdit(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAttendanceDto,
+  ) {
+    return this.attendanceService.manualEdit(id, dto);
   }
 }

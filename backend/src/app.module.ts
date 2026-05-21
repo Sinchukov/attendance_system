@@ -12,7 +12,8 @@ import { SubjectSubdivisionsModule } from './subject-subdivisions/subject-subdiv
 import { AttendanceModule } from './attendance/attendance.module';
 import { ScheduleTemplatesModule } from './schedule-templates/schedule-templates.module';
 import { SubjectSubdivisionStudentsModule } from './subject-subdivision-students/subject-subdivision-students.module';
-
+import { ScheduleModule } from '@nestjs/schedule';
+import { SchedulerModule } from './scheduler/scheduler.module';
 @Module({
   imports: [
     PrismaModule,
@@ -24,6 +25,8 @@ import { SubjectSubdivisionStudentsModule } from './subject-subdivision-students
     DevicesModule,
     SubjectsModule,
     TeachersModule,
+    SchedulerModule,
+    ScheduleModule.forRoot(),
     SubjectSubdivisionsModule,
     AttendanceModule,
     ScheduleTemplatesModule,
