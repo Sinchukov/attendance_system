@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 
 import { Roles } from '../auth/roles.decorator';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('reports')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -34,7 +35,6 @@ export class ReportsController {
     id: number,
 
     @Query('from') from?: string,
-
     @Query('to') to?: string,
   ) {
     return this.reportsService.getStudentReport(id, from, to);
@@ -49,11 +49,13 @@ export class ReportsController {
     @Param('id', ParseIntPipe)
     id: number,
 
+    @Query() paginationDto: PaginationDto,
+
     @Query('from') from?: string,
 
     @Query('to') to?: string,
   ) {
-    return this.reportsService.getGroupReport(id, from, to);
+    return this.reportsService.getGroupReport(id, paginationDto, from, to);
   }
 
   // =========================================
@@ -65,13 +67,14 @@ export class ReportsController {
     @Param('id', ParseIntPipe)
     id: number,
 
+    @Query() paginationDto: PaginationDto,
+
     @Query('from') from?: string,
 
     @Query('to') to?: string,
   ) {
-    return this.reportsService.getSubjectReport(id, from, to);
+    return this.reportsService.getSubjectReport(id, paginationDto, from, to);
   }
-
   // =========================================
   // SESSION REPORT
   // =========================================
@@ -93,11 +96,13 @@ export class ReportsController {
     @Param('id', ParseIntPipe)
     id: number,
 
+    @Query() paginationDto: PaginationDto,
+
     @Query('from') from?: string,
 
     @Query('to') to?: string,
   ) {
-    return this.reportsService.getTeacherReport(id, from, to);
+    return this.reportsService.getTeacherReport(id, paginationDto, from, to);
   }
 
   // =========================================

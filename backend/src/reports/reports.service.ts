@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import * as ExcelJS from 'exceljs';
-
+import { PaginationDto } from '../common/dto/pagination.dto';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -60,7 +60,17 @@ export class ReportsService {
   // GROUP REPORT
   // =========================================
 
-  async getGroupReport(groupId: number, from?: string, to?: string) {
+  async getGroupReport(
+    groupId: number,
+    paginationDto: PaginationDto,
+    from?: string,
+    to?: string,
+  ) {
+    const page = paginationDto.page ?? 1;
+
+    const limit = paginationDto.limit ?? 20;
+
+    const skip = (page - 1) * limit;
     const group = await this.prisma.academicGroup.findUnique({
       where: {
         id: groupId,
@@ -68,6 +78,9 @@ export class ReportsService {
 
       include: {
         students: {
+          skip,
+
+          take: limit,
           include: {
             attendances: {
               where: {
@@ -104,7 +117,18 @@ export class ReportsService {
   // SUBJECT REPORT
   // =========================================
 
-  async getSubjectReport(subjectId: number, from?: string, to?: string) {
+  async getSubjectReport(
+    subjectId: number,
+    paginationDto: PaginationDto,
+    from?: string,
+    to?: string,
+  ) {
+    const page = paginationDto.page ?? 1;
+
+    const limit = paginationDto.limit ?? 20;
+
+    const skip = (page - 1) * limit;
+
     return this.prisma.lessonSession.findMany({
       where: {
         subjectId,
@@ -115,6 +139,10 @@ export class ReportsService {
           lte: to ? new Date(to) : undefined,
         },
       },
+
+      skip,
+
+      take: limit,
 
       include: {
         subject: true,
@@ -176,7 +204,17 @@ export class ReportsService {
   // TEACHER REPORT
   // =========================================
 
-  async getTeacherReport(teacherId: number, from?: string, to?: string) {
+  async getTeacherReport(
+    teacherId: number,
+    paginationDto: PaginationDto,
+    from?: string,
+    to?: string,
+  ) {
+    const page = paginationDto.page ?? 1;
+
+    const limit = paginationDto.limit ?? 20;
+
+    const skip = (page - 1) * limit;
     const teacher = await this.prisma.teacher.findUnique({
       where: {
         id: teacherId,
@@ -184,6 +222,8 @@ export class ReportsService {
 
       include: {
         sessions: {
+          skip,
+          take: limit,
           where: {
             lessonDate: {
               gte: from ? new Date(from) : undefined,
@@ -248,14 +288,14 @@ export class ReportsService {
   // =========================================
 
   async exportGroupReportToExcel(groupId: number) {
-    const group = await this.getGroupReport(groupId);
+    const group = await this.getGroupReport(groupId, {
+      page: 1,
+      limit: 1000,
+    });
 
     const workbook = new ExcelJS.Workbook();
 
     const worksheet = workbook.addWorksheet('Attendance Report');
-    worksheet.getRow(1).font = {
-      bold: true,
-    };
 
     worksheet.views = [
       {
@@ -295,10 +335,48 @@ export class ReportsService {
         width: 25,
       },
     ];
+    worksheet.getRow(1).height = 28;
 
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = {
+        bold: true,
+        color: {
+          argb: 'FFFFFFFF',
+        },
+        size: 12,
+      };
+
+      cell.alignment = {
+        vertical: 'middle',
+        horizontal: 'center',
+      };
+
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: {
+          argb: '1F4E78',
+        },
+      };
+
+      cell.border = {
+        top: {
+          style: 'thin',
+        },
+        left: {
+          style: 'thin',
+        },
+        bottom: {
+          style: 'thin',
+        },
+        right: {
+          style: 'thin',
+        },
+      };
+    });
     for (const student of group.students) {
       for (const attendance of student.attendances) {
-        worksheet.addRow({
+        const row = worksheet.addRow({
           student: student.fullName,
 
           subject: attendance.lessonSession.subject.name,
@@ -308,6 +386,57 @@ export class ReportsService {
           status: attendance.status,
 
           checkIn: attendance.checkIn,
+        });
+        row.eachCell((cell) => {
+          cell.alignment = {
+            vertical: 'middle',
+            horizontal: 'left',
+          };
+          const statusCell = row.getCell(4);
+
+          if (attendance.status === 'PRESENT') {
+            statusCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: {
+                argb: 'C6EFCE',
+              },
+            };
+          }
+
+          if (attendance.status === 'ABSENT') {
+            statusCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: {
+                argb: 'FFC7CE',
+              },
+            };
+          }
+
+          if (attendance.status === 'LATE') {
+            statusCell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: {
+                argb: 'FFEB9C',
+              },
+            };
+          }
+          cell.border = {
+            top: {
+              style: 'thin',
+            },
+            left: {
+              style: 'thin',
+            },
+            bottom: {
+              style: 'thin',
+            },
+            right: {
+              style: 'thin',
+            },
+          };
         });
       }
     }
