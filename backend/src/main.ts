@@ -1,11 +1,14 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+
+  // VALIDATION
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -15,11 +18,15 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.PORT ?? 3000);
+  // CORS
+
+  app.enableCors();
+
+  // SWAGGER
 
   const config = new DocumentBuilder()
-    .setTitle('Attendance System API')
-    .setDescription('University attendance tracking system')
+    .setTitle('University Attendance System API')
+    .setDescription('API для системы учета посещаемости')
     .setVersion('1.0')
     .addBearerAuth()
     .build();
@@ -27,6 +34,11 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
 
   SwaggerModule.setup('api/docs', app, document);
+
+  await app.listen(process.env.PORT ?? 3000);
+
+  console.log(`Server started on port 3000`);
+  console.log(`Swagger: http://localhost:3000/api/docs`);
 }
 
 void bootstrap();
