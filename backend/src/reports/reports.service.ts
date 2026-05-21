@@ -253,7 +253,21 @@ export class ReportsService {
     const workbook = new ExcelJS.Workbook();
 
     const worksheet = workbook.addWorksheet('Attendance Report');
+    worksheet.getRow(1).font = {
+      bold: true,
+    };
 
+    worksheet.views = [
+      {
+        state: 'frozen',
+        ySplit: 1,
+      },
+    ];
+
+    worksheet.autoFilter = {
+      from: 'A1',
+      to: 'E1',
+    };
     worksheet.columns = [
       {
         header: 'Student',
