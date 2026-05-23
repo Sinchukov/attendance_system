@@ -43,11 +43,10 @@ export class TeachersService {
       },
     });
   }
-
-  async findOne(id: number) {
+  async findByUserId(userId: number) {
     return this.prisma.teacher.findUnique({
       where: {
-        id,
+        userId,
       },
 
       include: {
@@ -71,6 +70,112 @@ export class TeachersService {
             pairTime: true,
             subdivision: true,
           },
+        },
+      },
+    });
+  }
+  async findOne(id: number) {
+    return this.prisma.teacher.findUnique({
+      where: {
+        userId: id,
+      },
+
+      include: {
+        user: true,
+
+        scheduleTemplates: {
+          include: {
+            subject: true,
+            group: true,
+            room: true,
+            pairTime: true,
+            subdivision: true,
+          },
+        },
+
+        sessions: {
+          include: {
+            subject: true,
+            group: true,
+            room: true,
+            pairTime: true,
+            subdivision: true,
+          },
+        },
+      },
+    });
+  }
+
+  async getTeacherSchedule(teacherId: number) {
+    return this.prisma.scheduleTemplate.findMany({
+      where: {
+        teacherId,
+      },
+
+      include: {
+        subject: true,
+        group: true,
+        room: true,
+        pairTime: true,
+        subdivision: true,
+      },
+
+      orderBy: [
+        {
+          weekday: 'asc',
+        },
+
+        {
+          pairTime: {
+            pairNumber: 'asc',
+          },
+        },
+      ],
+    });
+  }
+
+  async getTodaySessions(teacherId: number) {
+    const now = new Date();
+
+    const startOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+    );
+
+    const endOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+    );
+
+    return this.prisma.lessonSession.findMany({
+      where: {
+        teacherId,
+
+        lessonDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+
+      include: {
+        subject: true,
+        group: true,
+        room: true,
+        pairTime: true,
+        subdivision: true,
+      },
+
+      orderBy: {
+        pairTime: {
+          pairNumber: 'asc',
         },
       },
     });

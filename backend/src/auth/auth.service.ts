@@ -40,6 +40,21 @@ export class AuthService {
         password: hashedPassword,
 
         role: dto.role,
+
+        teacher:
+          dto.role === 'TEACHER'
+            ? {
+                create: {
+                  fullName: dto.fullName ?? dto.email.split('@')[0],
+
+                  cardNo: null,
+                },
+              }
+            : undefined,
+      },
+
+      include: {
+        teacher: true,
       },
     });
 
@@ -79,6 +94,12 @@ export class AuthService {
 
     return {
       access_token: this.jwtService.sign(payload),
+
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
     };
   }
 }
