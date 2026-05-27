@@ -1,23 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import {
+  format,
+  startOfWeek,
+  addDays,
+} from "date-fns";
+
+import { ru } from "date-fns/locale";
 
 import { useAuthStore } from "@/store/auth.store";
 
-import { scheduleService } from "@/services/schedule.service";
+import { lessonSessionService } from "@/services/lesson-session.service";
 
-interface ScheduleItem {
+interface Session {
   id: number;
 
-  weekday: string;
-
-  lessonType: string;
+  lessonDate: string;
 
   subject: {
-    name: string;
-  };
-
-  group: {
     name: string;
   };
 
@@ -25,34 +27,43 @@ interface ScheduleItem {
     name: string;
   };
 
+  group: {
+    name: string;
+  };
+
   pairTime: {
-    pairNumber: number;
     startTime: string;
     endTime: string;
   };
 }
 
-export default function SchedulePage() {
-  const { user } = useAuthStore();
+const weekdays = [
+  "Понедельник",
+  "Вторник",
+  "Среда",
+  "Четверг",
+  "Пятница",
+  "Суббота",
+];
 
-  const [schedule, setSchedule] = useState<
-    ScheduleItem[]
-  >([]);
+export default function SchedulePage() {
+  const [sessions, setSessions] =
+    useState<Session[]>([]);
 
   const [loading, setLoading] =
     useState(true);
 
+  const user = useAuthStore(
+    (state) => state.user,
+  );
+
   useEffect(() => {
     async function loadSchedule() {
       try {
-        if (!user?.id) return;
-
         const data =
-          await scheduleService.getTeacherSchedule(
-            user.id,
-          );
+await lessonSessionService.getMyWeekSessions();
 
-        setSchedule(data);
+        setSessions(data);
       } catch (error) {
         console.error(error);
       } finally {
@@ -60,17 +71,51 @@ export default function SchedulePage() {
       }
     }
 
-    loadSchedule();
+    void loadSchedule();
   }, [user]);
 
-  const weekdayMap: Record<string, string> = {
-    MONDAY: "Понедельник",
-    TUESDAY: "Вторник",
-    WEDNESDAY: "Среда",
-    THURSDAY: "Четверг",
-    FRIDAY: "Пятница",
-    SATURDAY: "Суббота",
-  };
+  const weekDays = useMemo(() => {
+    const start =
+      startOfWeek(new Date(), {
+        weekStartsOn: 1,
+      });
+
+    return Array.from(
+      { length: 6 },
+      (_, index) => {
+        const date = addDays(
+          start,
+          index,
+        );
+
+        return {
+          label: weekdays[index],
+
+          date,
+
+          sessions: sessions.filter(
+            (session) => {
+              const sessionDate =
+                new Date(
+                  session.lessonDate,
+                );
+
+              return (
+                format(
+                  sessionDate,
+                  "yyyy-MM-dd",
+                ) ===
+                format(
+                  date,
+                  "yyyy-MM-dd",
+                )
+              );
+            },
+          ),
+        };
+      },
+    );
+  }, [sessions]);
 
   if (loading) {
     return (
@@ -81,73 +126,99 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-white">
+        <h1 className="text-4xl font-bold text-white">
           Расписание
         </h1>
 
         <p className="text-slate-400 mt-2">
-          Ваши занятия и пары
+          Текущая учебная неделя
         </p>
       </div>
 
-      <div className="grid gap-4">
-        {schedule.map((lesson) => (
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {weekDays.map((day) => (
           <div
-            key={lesson.id}
-            className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200"
+            key={day.label}
+            className="bg-slate-900 border border-slate-800 rounded-2xl p-6"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">
-                  {lesson.subject.name}
-                </h2>
+            <div className="mb-5">
+              <h2 className="text-2xl font-bold text-white">
+                {day.label}
+              </h2>
 
-                <p className="text-slate-500 mt-1">
-                  {weekdayMap[
-                    lesson.weekday
-                  ] || lesson.weekday}
-                </p>
-              </div>
-
-              <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl font-semibold">
-                {lesson.lessonType}
-              </div>
+              <p className="text-slate-400 mt-1">
+                {format(
+                  day.date,
+                  "d MMMM yyyy",
+                  {
+                    locale: ru,
+                  },
+                )}
+              </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 mt-6">
-              <div className="bg-slate-50 rounded-xl p-4">
-                <p className="text-slate-400 text-sm">
-                  Группа
-                </p>
+            <div className="space-y-4">
+              {day.sessions.length ===
+              0 ? (
+                <div className="bg-slate-800 rounded-xl p-4 text-slate-400">
+                  Нет занятий
+                </div>
+              ) : (
+                day.sessions.map(
+                  (session) => (
+                    <div
+                      key={session.id}
+                      className="bg-slate-800 rounded-xl p-5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-bold text-white">
+                            {
+                              session
+                                .subject
+                                .name
+                            }
+                          </h3>
 
-                <p className="text-lg font-semibold text-slate-900 mt-1">
-                  {lesson.group.name}
-                </p>
-              </div>
+                          <p className="text-slate-400 mt-1">
+                            Группа{" "}
+                            {
+                              session
+                                .group
+                                .name
+                            }
+                          </p>
 
-              <div className="bg-slate-50 rounded-xl p-4">
-                <p className="text-slate-400 text-sm">
-                  Аудитория
-                </p>
+                          <p className="text-slate-400">
+                            Аудитория{" "}
+                            {
+                              session
+                                .room
+                                .name
+                            }
+                          </p>
+                        </div>
 
-                <p className="text-lg font-semibold text-slate-900 mt-1">
-                  {lesson.room.name}
-                </p>
-              </div>
-
-              <div className="bg-slate-50 rounded-xl p-4">
-                <p className="text-slate-400 text-sm">
-                  Время
-                </p>
-
-                <p className="text-lg font-semibold text-slate-900 mt-1">
-                  {lesson.pairTime.startTime}
-                  {" - "}
-                  {lesson.pairTime.endTime}
-                </p>
-              </div>
+                        <div className="bg-blue-600 text-white px-4 py-2 rounded-xl font-semibold">
+                          {
+                            session
+                              .pairTime
+                              .startTime
+                          }
+                          {" - "}
+                          {
+                            session
+                              .pairTime
+                              .endTime
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  ),
+                )
+              )}
             </div>
           </div>
         ))}

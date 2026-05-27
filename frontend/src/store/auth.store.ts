@@ -2,8 +2,14 @@ import { create } from "zustand";
 
 interface User {
   id: number;
+
   email: string;
+
   role: string;
+
+  teacherId?: number | null;
+
+  teacherName?: string | null;
 }
 
 interface AuthState {
@@ -17,6 +23,8 @@ interface AuthState {
   ) => void;
 
   logout: () => void;
+
+  loadFromStorage: () => void;
 }
 
 export const useAuthStore =
@@ -42,18 +50,38 @@ export const useAuthStore =
       });
     },
 
+    loadFromStorage: () => {
+      const token =
+        localStorage.getItem("token");
+
+      const user =
+        localStorage.getItem("user");
+
+      set({
+        token,
+
+        user: user
+          ? JSON.parse(user)
+          : null,
+      });
+    },
+
     logout: () => {
       localStorage.removeItem(
         "token",
       );
 
-      localStorage.removeItem("user");
+      localStorage.removeItem(
+        "user",
+      );
 
       set({
         user: null,
+
         token: null,
       });
 
-      window.location.href = "/login";
+      window.location.href =
+        "/login";
     },
   }));

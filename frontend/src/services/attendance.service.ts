@@ -5,13 +5,21 @@ export const attendanceService = {
   async getSessionStudents(
     sessionId: number,
   ) {
+    const token =
+      localStorage.getItem("token");
+
     const response = await fetch(
       `${API_URL}/lesson-sessions/${sessionId}/students`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
     );
 
     if (!response.ok) {
       throw new Error(
-        'Ошибка загрузки студентов',
+        "Ошибка загрузки студентов",
       );
     }
 
@@ -20,30 +28,52 @@ export const attendanceService = {
 
   async updateAttendance(
     attendanceId: number,
-    status:
-      | 'PRESENT'
-      | 'LATE'
-      | 'ABSENT',
+    data: {
+      status:
+        | "PRESENT"
+        | "LATE"
+        | "ABSENT"
+        | "EXCUSED";
+
+      comment?: string;
+    },
   ) {
+    const token =
+      localStorage.getItem("token");
+
+    console.log(
+      "TOKEN:",
+      token,
+    );
+
     const response = await fetch(
-      `${API_URL}/lesson-sessions/attendance/${attendanceId}`,
+      `${API_URL}/attendance/${attendanceId}`,
       {
-        method: 'PATCH',
+        method: "PATCH",
 
         headers: {
-          'Content-Type':
-            'application/json',
+          "Content-Type":
+            "application/json",
+
+          Authorization: `Bearer ${token}`,
         },
 
-        body: JSON.stringify({
-          status,
-        }),
+        body: JSON.stringify(data),
       },
     );
 
     if (!response.ok) {
+      const error =
+        await response.json();
+
+      console.log(
+        "BACKEND ERROR:",
+        error,
+      );
+
       throw new Error(
-        'Ошибка обновления посещаемости',
+        error.message ||
+          "Ошибка обновления посещаемости",
       );
     }
 

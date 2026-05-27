@@ -1,5 +1,7 @@
 import "./globals.css";
 
+import { AuthProvider } from "@/components/providers/auth-provider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -8,7 +10,9 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body>
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

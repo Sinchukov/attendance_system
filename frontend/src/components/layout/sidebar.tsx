@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+
+import {
+  usePathname,
+  useRouter,
+} from "next/navigation";
 
 import {
   LayoutDashboard,
@@ -9,6 +13,7 @@ import {
   ClipboardCheck,
   Users,
   LogOut,
+  GraduationCap,
 } from "lucide-react";
 
 import { useAuthStore } from "@/store/auth.store";
@@ -48,6 +53,10 @@ export function Sidebar() {
     (state) => state.logout,
   );
 
+  const user = useAuthStore(
+    (state) => state.user,
+  );
+
   const handleLogout = () => {
     logout();
 
@@ -55,15 +64,38 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="w-[260px] min-h-screen bg-blue-950 text-white flex flex-col justify-between">
+    <aside className="w-[280px] min-h-screen bg-slate-950 border-r border-slate-800 text-white flex flex-col justify-between">
       <div>
-        <div className="p-6 border-b border-blue-900">
-          <h1 className="text-2xl font-bold">
-            Attendance System
-          </h1>
+        <div className="p-6 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-3 rounded-2xl">
+              <GraduationCap size={28} />
+            </div>
 
-          <p className="text-sm text-blue-200 mt-1">
-            Teacher Panel
+            <div>
+              <h1 className="text-xl font-bold">
+                Attendance System
+              </h1>
+
+              <p className="text-sm text-slate-400">
+                Teacher Panel
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-5 border-b border-slate-800">
+          <p className="text-sm text-slate-400">
+            Преподаватель
+          </p>
+
+          <h2 className="font-semibold text-lg mt-1">
+            {user?.teacherName ??
+              user?.email}
+          </h2>
+
+          <p className="text-sm text-blue-400 mt-1">
+            {user?.role}
           </p>
         </div>
 
@@ -72,16 +104,18 @@ export function Sidebar() {
             const Icon = item.icon;
 
             const isActive =
-              pathname === item.href;
+              pathname.startsWith(
+                item.href,
+              );
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 ${
                   isActive
-                    ? "bg-blue-600 text-white"
-                    : "hover:bg-blue-800 text-blue-100"
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                    : "hover:bg-slate-800 text-slate-300"
                 }`}
               >
                 <Icon size={20} />
@@ -95,10 +129,10 @@ export function Sidebar() {
         </nav>
       </div>
 
-      <div className="p-4">
+      <div className="p-4 border-t border-slate-800">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 transition-all p-3 rounded-xl font-medium"
+          className="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 transition-all p-3 rounded-2xl font-medium"
         >
           <LogOut size={18} />
 
