@@ -13,9 +13,11 @@ enum UserRole {
 }
 
 enum AttendanceStatus {
+  PENDING
   PRESENT
   LATE
   ABSENT
+  EXCUSED
 }
 
 enum LessonType {
@@ -297,11 +299,11 @@ model Attendance {
   status AttendanceStatus
 
   checkIn DateTime?
-
+  comment String?
   isManualEdited Boolean @default(false)
 
   createdAt DateTime @default(now())
-
+  
   student Student @relation(fields: [studentId], references: [id])
 
   lessonSession LessonSession @relation(fields: [lessonSessionId], references: [id])

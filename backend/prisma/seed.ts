@@ -1,112 +1,27 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { PrismaClient } from '@prisma/client';
-
-import * as bcrypt from 'bcrypt';
+import {
+  PrismaClient,
+  LessonType,
+  WeekDay,
+  AttendanceStatus,
+} from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('SEED STARTED');
-
-  // =========================================
-  // PAIR TIMES
-  // =========================================
-
-  await prisma.pairTime.createMany({
-    data: [
-      {
-        pairNumber: 1,
-        startTime: '09:00',
-        endTime: '10:20',
-      },
-
-      {
-        pairNumber: 2,
-        startTime: '10:35',
-        endTime: '11:55',
-      },
-
-      {
-        pairNumber: 3,
-        startTime: '12:10',
-        endTime: '13:30',
-      },
-
-      {
-        pairNumber: 4,
-        startTime: '13:45',
-        endTime: '15:05',
-      },
-    ],
-
-    skipDuplicates: true,
-  });
-
-  // =========================================
-  // ROOMS
-  // =========================================
-
-  await prisma.room.createMany({
-    data: [{ name: '101' }, { name: '202' }, { name: '303' }],
-
-    skipDuplicates: true,
-  });
-
-  // =========================================
-  // DEVICES
-  // =========================================
-
-  const room101 = await prisma.room.findUnique({
-    where: {
-      name: '101',
-    },
-  });
-
-  const room202 = await prisma.room.findUnique({
-    where: {
-      name: '202',
-    },
-  });
-
-  if (room101 && room202) {
-    await prisma.device.createMany({
-      data: [
-        {
-          serialNumber: 'HK-101',
-          roomId: room101.id,
-        },
-
-        {
-          serialNumber: 'HK-202',
-          roomId: room202.id,
-        },
-      ],
-
-      skipDuplicates: true,
-    });
-  }
-
   // =========================================
   // GROUPS
   // =========================================
 
-  await prisma.academicGroup.createMany({
-    data: [{ name: '251001' }, { name: '251002' }],
-
-    skipDuplicates: true,
-  });
-
-  const group1 = await prisma.academicGroup.findUnique({
-    where: {
-      name: '251001',
+  const group1 = await prisma.academicGroup.create({
+    data: {
+      name: '251003',
     },
   });
 
-  const group2 = await prisma.academicGroup.findUnique({
-    where: {
-      name: '251002',
+  const group2 = await prisma.academicGroup.create({
+    data: {
+      name: '251004',
     },
   });
 
@@ -114,25 +29,55 @@ async function main() {
   // SUBJECTS
   // =========================================
 
-  await prisma.subject.createMany({
-    data: [
-      { name: 'Базы данных' },
-      { name: 'Web-разработка' },
-      { name: 'Сетевые технологии' },
-    ],
-
-    skipDuplicates: true,
+  const programming = await prisma.subject.create({
+    data: {
+      name: 'Программирование',
+    },
   });
 
-  const databaseSubject = await prisma.subject.findUnique({
-    where: {
+  const databases = await prisma.subject.create({
+    data: {
       name: 'Базы данных',
     },
   });
 
-  const webSubject = await prisma.subject.findUnique({
-    where: {
-      name: 'Web-разработка',
+  // =========================================
+  // ROOMS
+  // =========================================
+
+  const room312 = await prisma.room.create({
+    data: {
+      name: '312',
+    },
+  });
+
+  const room210 = await prisma.room.create({
+    data: {
+      name: '210',
+    },
+  });
+
+  // =========================================
+  // PAIR TIMES
+  // =========================================
+
+  const pair1 = await prisma.pairTime.create({
+    data: {
+      pairNumber: 1,
+
+      startTime: '10:00',
+
+      endTime: '11:30',
+    },
+  });
+
+  const pair2 = await prisma.pairTime.create({
+    data: {
+      pairNumber: 2,
+
+      startTime: '12:00',
+
+      endTime: '13:30',
     },
   });
 
@@ -140,130 +85,194 @@ async function main() {
   // TEACHER
   // =========================================
 
-  const teacherPassword = await bcrypt.hash('teacher123', 10);
+  const teacher = await prisma.teacher.findFirst();
 
-  const existingUser = await prisma.user.findUnique({
-    where: {
-      email: 'teacher@test.com',
-    },
-  });
-
-  let teacher;
-
-  if (!existingUser) {
-    teacher = await prisma.teacher.create({
-      data: {
-        fullName: 'Иванов Иван Иванович',
-
-        cardNo: 'T-001',
-
-        user: {
-          create: {
-            email: 'teacher@test.com',
-
-            password: teacherPassword,
-
-            role: 'TEACHER',
-          },
-        },
-      },
-    });
-  } else {
-    teacher = await prisma.teacher.findFirst({
-      where: {
-        user: {
-          email: 'teacher@test.com',
-        },
-      },
-    });
+  if (!teacher) {
+    throw new Error('Teacher not found');
   }
 
   // =========================================
   // STUDENTS
   // =========================================
 
-  if (group1) {
-    for (let i = 1; i <= 10; i++) {
-      await prisma.student.upsert({
-        where: {
-          studentCardNo: `251001-${i}`,
-        },
+  // ======================================================
+  // TEST STUDENTS
+  // ======================================================
 
-        update: {},
-
-        create: {
-          fullName: `Студент 251001-${i}`,
-
-          studentCardNo: `251001-${i}`,
-
-          groupId: group1.id,
-        },
-      });
-    }
-  }
-
-  if (group2) {
-    for (let i = 1; i <= 10; i++) {
-      await prisma.student.upsert({
-        where: {
-          studentCardNo: `251002-${i}`,
-        },
-
-        update: {},
-
-        create: {
-          fullName: `Студент 251002-${i}`,
-
-          studentCardNo: `251002-${i}`,
-
-          groupId: group2.id,
-        },
-      });
-    }
-  }
-
-  // =========================================
-  // SCHEDULE TEMPLATE
-  // =========================================
-
-  const pair1 = await prisma.pairTime.findUnique({
+  const student1 = await prisma.student.upsert({
     where: {
-      pairNumber: 1,
+      studentCardNo: 'ST001',
+    },
+
+    update: {},
+
+    create: {
+      fullName: 'Иван Иванов',
+      studentCardNo: 'ST001',
+      groupId: 1,
     },
   });
 
-  if (teacher && group1 && databaseSubject && room101 && pair1) {
-    await prisma.scheduleTemplate.createMany({
-      data: [
-        {
-          weekday: 'MONDAY',
+  const student2 = await prisma.student.upsert({
+    where: {
+      studentCardNo: 'ST002',
+    },
 
-          lessonType: 'LECTURE',
+    update: {},
 
-          subjectId: databaseSubject.id,
+    create: {
+      fullName: 'Петр Петров',
+      studentCardNo: 'ST002',
+      groupId: 1,
+    },
+  });
 
-          teacherId: teacher.id,
+  const student3 = await prisma.student.upsert({
+    where: {
+      studentCardNo: 'ST003',
+    },
 
-          roomId: room101.id,
+    update: {},
 
-          pairTimeId: pair1.id,
+    create: {
+      fullName: 'Алексей Смирнов',
+      studentCardNo: 'ST003',
+      groupId: 1,
+    },
+  });
 
-          groupId: group1.id,
-        },
-      ],
+  // ======================================================
+  // TEST LESSON SESSION
+  // ======================================================
 
-      skipDuplicates: true,
-    });
-  }
+  const today = new Date();
 
-  console.log('SEED FINISHED');
+  today.setHours(0, 0, 0, 0);
+
+  const session = await prisma.lessonSession.upsert({
+    where: {
+      id: 1,
+    },
+
+    update: {},
+
+    create: {
+      lessonDate: today,
+
+      lessonType: 'LECTURE',
+
+      subjectId: 1,
+
+      teacherId: 5,
+
+      roomId: 1,
+
+      pairTimeId: 1,
+
+      groupId: 1,
+    },
+  });
+
+  // ======================================================
+  // ATTENDANCE
+  // ======================================================
+
+  await prisma.attendance.upsert({
+    where: {
+      studentId_lessonSessionId: {
+        studentId: student1.id,
+        lessonSessionId: session.id,
+      },
+    },
+
+    update: {},
+
+    create: {
+      studentId: student1.id,
+      lessonSessionId: session.id,
+      status: 'PENDING',
+    },
+  });
+
+  await prisma.attendance.upsert({
+    where: {
+      studentId_lessonSessionId: {
+        studentId: student2.id,
+        lessonSessionId: session.id,
+      },
+    },
+
+    update: {},
+
+    create: {
+      studentId: student2.id,
+      lessonSessionId: session.id,
+      status: 'PENDING',
+    },
+  });
+
+  await prisma.attendance.upsert({
+    where: {
+      studentId_lessonSessionId: {
+        studentId: student3.id,
+        lessonSessionId: session.id,
+      },
+    },
+
+    update: {},
+
+    create: {
+      studentId: student3.id,
+      lessonSessionId: session.id,
+      status: 'PENDING',
+    },
+  });
+  // =========================================
+  // SCHEDULE TEMPLATES
+  // =========================================
+
+  await prisma.scheduleTemplate.create({
+    data: {
+      weekday: WeekDay.MONDAY,
+
+      lessonType: LessonType.LECTURE,
+
+      subjectId: programming.id,
+
+      teacherId: teacher.id,
+
+      roomId: room312.id,
+
+      pairTimeId: pair1.id,
+
+      groupId: group1.id,
+    },
+  });
+
+  await prisma.scheduleTemplate.create({
+    data: {
+      weekday: WeekDay.MONDAY,
+
+      lessonType: LessonType.PRACTICE,
+
+      subjectId: databases.id,
+
+      teacherId: teacher.id,
+
+      roomId: room210.id,
+
+      pairTimeId: pair2.id,
+
+      groupId: group2.id,
+    },
+  });
+
+  console.log('SEED COMPLETED');
 }
 
 main()
   .catch((e) => {
     console.error(e);
-
-    process.exit(1);
   })
   .finally(async () => {
     await prisma.$disconnect();

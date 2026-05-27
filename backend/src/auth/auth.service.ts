@@ -74,6 +74,10 @@ export class AuthService {
       where: {
         email: dto.email,
       },
+
+      include: {
+        teacher: true,
+      },
     });
 
     if (!user) {
@@ -97,8 +101,14 @@ export class AuthService {
 
       user: {
         id: user.id,
+
         email: user.email,
+
         role: user.role,
+
+        teacherId: user.teacher?.id ?? null,
+
+        teacherName: user.teacher?.fullName ?? null,
       },
     };
   }

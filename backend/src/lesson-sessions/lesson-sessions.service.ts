@@ -7,7 +7,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { WeekDay } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
-
+import { AttendanceStatus } from '@prisma/client';
 import { CancelLessonDto } from './dto/cancel-lesson.dto';
 import { CreateLessonSessionDto } from './dto/create-lesson-session.dto';
 
@@ -192,7 +192,7 @@ export class LessonSessionsService {
 
           lessonSessionId: session.id,
 
-          status: 'ABSENT',
+          status: 'PENDING',
         },
       });
     }
@@ -277,5 +277,198 @@ export class LessonSessionsService {
         cancellationReason: dto.reason,
       },
     });
+  }
+
+  async findTeacherSessions(teacherId: number) {
+    return this.prisma.lessonSession.findMany({
+      where: {
+        teacherId,
+      },
+
+      include: {
+        subject: true,
+        group: true,
+        room: true,
+        pairTime: true,
+        subdivision: true,
+
+        attendances: true,
+      },
+
+      orderBy: [
+        {
+          lessonDate: 'asc',
+        },
+        {
+          pairTimeId: 'asc',
+        },
+      ],
+    });
+  }
+
+  async findSessionStudents(sessionId: number) {
+    return this.prisma.attendance.findMany({
+      where: {
+        lessonSessionId: sessionId,
+      },
+
+      include: {
+        student: true,
+      },
+
+      orderBy: {
+        student: {
+          fullName: 'asc',
+        },
+      },
+    });
+  }
+  async updateAttendance(
+    attendanceId: number,
+    dto: {
+      status: AttendanceStatus;
+
+      comment?: string;
+    },
+  ) {
+    const attendance = await this.prisma.attendance.findUnique({
+      where: {
+        id: attendanceId,
+      },
+    });
+
+    if (!attendance) {
+      throw new NotFoundException('Attendance не найден');
+    }
+
+    return this.prisma.attendance.update({
+      where: {
+        id: attendanceId,
+      },
+
+      data: {
+        status: dto.status,
+        comment: dto.comment ?? null,
+        isManualEdited: true,
+      },
+    });
+  }
+  async getTeacherWeekSessions(teacherId: number) {
+    const now = new Date();
+
+    const day = now.getDay();
+
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+
+    const monday = new Date(now);
+
+    monday.setDate(now.getDate() + diffToMonday);
+
+    monday.setHours(0, 0, 0, 0);
+
+    const sunday = new Date(monday);
+
+    sunday.setDate(monday.getDate() + 6);
+
+    sunday.setHours(23, 59, 59, 999);
+
+    return this.prisma.lessonSession.findMany({
+      where: {
+        teacherId,
+
+        lessonDate: {
+          gte: monday,
+          lte: sunday,
+        },
+      },
+
+      include: {
+        subject: true,
+
+        room: true,
+
+        pairTime: true,
+
+        group: true,
+      },
+
+      orderBy: [
+        {
+          lessonDate: 'asc',
+        },
+
+        {
+          pairTime: {
+            pairNumber: 'asc',
+          },
+        },
+      ],
+    });
+  }
+
+  async getTeacherSessions(teacherId: number) {
+    return this.prisma.lessonSession.findMany({
+      where: {
+        teacherId,
+      },
+
+      include: {
+        subject: true,
+        room: true,
+        group: true,
+        pairTime: true,
+        subdivision: true,
+      },
+
+      orderBy: [
+        {
+          lessonDate: 'asc',
+        },
+        {
+          pairTime: {
+            pairNumber: 'asc',
+          },
+        },
+      ],
+    });
+  }
+  async getTeacherByUserId(userId: number) {
+    return this.prisma.teacher.findUnique({
+      where: {
+        userId,
+      },
+    });
+  }
+
+  async validateTeacherSessionAccess(sessionId: number, userId: number) {
+    const session = await this.prisma.lessonSession.findUnique({
+      where: {
+        id: sessionId,
+      },
+
+      include: {
+        teacher: true,
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Пара не найдена');
+    }
+
+    const teacher = await this.prisma.teacher.findUnique({
+      where: {
+        userId,
+      },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Преподаватель не найден');
+    }
+
+    if (session.teacherId !== teacher.id) {
+      throw new NotFoundException('Нет доступа к этой паре');
+    }
+
+    return session;
   }
 }

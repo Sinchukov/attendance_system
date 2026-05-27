@@ -1,7 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
 import {
   BadRequestException,
   Injectable,
@@ -432,6 +428,8 @@ export class AttendanceService {
 
         checkIn: dto.checkIn ?? attendance.checkIn,
 
+        comment: dto.comment ?? attendance.comment,
+
         isManualEdited: true,
       },
     });
@@ -509,5 +507,41 @@ export class AttendanceService {
         deviceId: params.deviceId,
       },
     });
+  }
+
+  async getSessionStudents(sessionId: number) {
+    const session = await this.prisma.lessonSession.findUnique({
+      where: {
+        id: sessionId,
+      },
+
+      include: {
+        subject: true,
+
+        room: true,
+
+        group: true,
+
+        pairTime: true,
+
+        attendances: {
+          include: {
+            student: true,
+          },
+
+          orderBy: {
+            student: {
+              fullName: 'asc',
+            },
+          },
+        },
+      },
+    });
+
+    if (!session) {
+      throw new NotFoundException('Пара не найдена');
+    }
+
+    return session;
   }
 }
