@@ -17,12 +17,23 @@ import { SchedulerModule } from './scheduler/scheduler.module';
 import { AuthModule } from './auth/auth.module';
 import { ReportsModule } from './reports/reports.module';
 import { ConfigModule } from '@nestjs/config';
+import { TeacherDashboardModule } from './teacher-dashboard/teacher-dashboard.module';
+import { TeacherAttendanceModule } from './teacher-attendance/teacher-attendance.module';
+import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
+import { AuditModule } from './audit/audit.module';
+import { KpiModule } from './kpi/kpi.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 @Module({
   imports: [
     PrismaModule,
+    TeacherDashboardModule,
     PairTimesModule,
+    AnalyticsModule,
+    KpiModule,
     LessonSessionsModule,
+    AdminDashboardModule,
     AcademicGroupsModule,
+    TeacherAttendanceModule,
     StudentsModule,
     ReportsModule,
     RoomsModule,
@@ -39,6 +50,7 @@ import { ConfigModule } from '@nestjs/config';
       isGlobal: true,
     }),
     SubjectSubdivisionStudentsModule,
+    AuditModule,
   ],
 })
 export class AppModule {}

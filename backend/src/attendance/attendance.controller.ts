@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   Body,
   Controller,
@@ -8,7 +11,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-
+import { CurrentUser } from '../auth/current-user.decorator';
 import { AttendanceService } from './attendance.service';
 
 import { CheckInDto } from './dto/check-in.dto';
@@ -52,5 +55,21 @@ export class AttendanceController {
     @Body() dto: UpdateAttendanceDto,
   ) {
     return this.attendanceService.manualEdit(id, dto);
+  }
+
+  @Get('history/:studentId')
+  getStudentHistory(
+    @Param('studentId', ParseIntPipe)
+    studentId: number,
+  ) {
+    return this.attendanceService.getStudentHistory(studentId);
+  }
+
+  @Get('session-history/:sessionId')
+  getSessionHistory(
+    @Param('sessionId', ParseIntPipe)
+    sessionId: number,
+  ) {
+    return this.attendanceService.getSessionHistory(sessionId);
   }
 }

@@ -18,7 +18,57 @@ export class AttendanceService {
   // =====================================================
   // CHECK-IN
   // =====================================================
+  async getSessionHistory(sessionId: number) {
+    return this.prisma.attendanceChangeLog.findMany({
+      where: {
+        attendance: {
+          lessonSessionId: sessionId,
+        },
+      },
 
+      include: {
+        teacher: true,
+
+        attendance: {
+          include: {
+            student: true,
+          },
+        },
+      },
+
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async getStudentHistory(studentId: number) {
+    return this.prisma.attendanceChangeLog.findMany({
+      where: {
+        attendance: {
+          studentId,
+        },
+      },
+
+      include: {
+        teacher: true,
+
+        attendance: {
+          include: {
+            lessonSession: {
+              include: {
+                subject: true,
+              },
+            },
+          },
+        },
+      },
+
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
   async checkIn(dto: CheckInDto) {
     // 1. ИЩЕМ УСТРОЙСТВО
 

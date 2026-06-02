@@ -21,6 +21,10 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
+    if (dto.role === 'ADMIN') {
+      throw new BadRequestException('Создание администратора запрещено');
+    }
+
     const existingUser = await this.prisma.user.findUnique({
       where: {
         email: dto.email,

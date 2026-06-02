@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 
 import type { Response } from 'express';
-
+import { ReportFilterDto } from './dto/report-filter.dto';
 import { ReportsService } from './reports.service';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -141,5 +141,43 @@ export class ReportsController {
     );
 
     res.send(buffer);
+  }
+  @Get('group/:id/pdf')
+  async exportGroupPdf(
+    @Param('id', ParseIntPipe)
+    id: number,
+
+    @Res()
+    res: Response,
+  ) {
+    const buffer = await this.reportsService.exportGroupReportToPdf(id);
+
+    res.setHeader('Content-Type', 'application/pdf');
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=group-${id}.pdf`,
+    );
+
+    res.send(buffer);
+  }
+  @Get('attendance')
+  getAttendanceReport(@Query() filters: ReportFilterDto) {
+    return this.reportsService.getAttendanceReport(filters);
+  }
+  @Get('dashboard')
+  getDashboardStatistics() {
+    return this.reportsService.getDashboardStatistics();
+  }
+  @Get('attendance-summary')
+  getAttendanceSummary(
+    @Query()
+    filters: ReportFilterDto,
+  ) {
+    return this.reportsService.getAttendanceSummary(filters);
+  }
+  @Get('analytics/groups')
+  getAttendanceByGroup() {
+    return this.reportsService.getAttendanceByGroup();
   }
 }

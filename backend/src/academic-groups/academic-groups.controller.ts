@@ -12,8 +12,17 @@ import {
 import { AcademicGroupsService } from './academic-groups.service';
 import { CreateAcademicGroupDto } from './dto/create-academic-group.dto';
 import { UpdateAcademicGroupDto } from './dto/update-academic-group.dto';
+import { UseGuards } from '@nestjs/common';
+
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+
+import { RolesGuard } from '../auth/roles.guard';
+
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('academic-groups')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 export class AcademicGroupsController {
   constructor(private service: AcademicGroupsService) {}
 

@@ -5,36 +5,47 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
 import { DevicesService } from './devices.service';
 
 import { CreateDeviceDto } from './dto/create-device.dto';
 
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+
+import { RolesGuard } from '../auth/roles.guard';
+
+import { Roles } from '../auth/roles.decorator';
+
 @Controller('devices')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
-  // СОЗДАТЬ DEVICE
   @Post()
+  @Roles('ADMIN')
   create(@Body() dto: CreateDeviceDto) {
     return this.devicesService.create(dto);
   }
 
-  // ВСЕ DEVICES
   @Get()
+  @Roles('ADMIN')
   findAll() {
     return this.devicesService.findAll();
   }
 
-  // DEVICE ПО ID
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  @Roles('ADMIN')
+  findOne(
+    @Param('id', ParseIntPipe)
+    id: number,
+  ) {
     return this.devicesService.findOne(id);
   }
 
-  // DEVICE ПО SERIAL
   @Get('serial/:serialNumber')
+  @Roles('ADMIN')
   findBySerial(
     @Param('serialNumber')
     serialNumber: string,

@@ -40,8 +40,10 @@ model User {
   password  String
   role      UserRole
   createdAt DateTime @default(now())
-
+  isActive Boolean @default(true)
   teacher Teacher?
+
+  auditLogs AuditLog[]
 }
 
 enum AttendanceEventType {
@@ -212,7 +214,25 @@ model PairTime {
   scheduleTemplates ScheduleTemplate[]
   sessions          LessonSession[]
 }
+model AuditLog {
+  id          Int      @id @default(autoincrement())
 
+  userId      Int?
+
+  action      String
+
+  entityType  String
+
+  entityId    Int?
+
+  oldValue    Json?
+
+  newValue    Json?
+
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+}
 model ScheduleTemplate {
   id Int @id @default(autoincrement())
 

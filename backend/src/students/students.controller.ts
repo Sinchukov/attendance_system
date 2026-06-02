@@ -12,8 +12,16 @@ import {
 import { StudentsService } from './students.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
+import { UseGuards } from '@nestjs/common';
 
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+
+import { RolesGuard } from '../auth/roles.guard';
+
+import { Roles } from '../auth/roles.decorator';
 @Controller('students')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 export class StudentsController {
   constructor(private service: StudentsService) {}
 

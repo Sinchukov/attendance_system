@@ -2,15 +2,29 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStudentDto } from './dto/create-student.dto';
 import { UpdateStudentDto } from './dto/update-student.dto';
-
+import { AuditService } from '../audit/audit.service';
 @Injectable()
 export class StudentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditService: AuditService,
+  ) {}
 
-  create(dto: CreateStudentDto) {
-    return this.prisma.student.create({
+  async create(dto: CreateStudentDto) {
+    const student = await this.prisma.student.create({
       data: dto,
     });
+
+    await this.auditService.createLog(
+      'CREATE',
+      'Student',
+      student.id,
+      undefined,
+      undefined,
+      student,
+    );
+
+    return student;
   }
 
   findAll() {
@@ -30,14 +44,42 @@ export class StudentsService {
     });
   }
 
-  update(id: number, dto: UpdateStudentDto) {
-    return this.prisma.student.update({
+  async update(id: number, dto: UpdateStudentDto) {
+    const oldStudent = await this.prisma.student.findUnique({
+      where: { id },
+    });
+
+    const updatedStudent = await this.prisma.student.update({
       where: { id },
       data: dto,
     });
+
+    await this.auditService.createLog(
+      'UPDATE',
+      'Student',
+      id,
+      undefined,
+      oldStudent,
+      updatedStudent,
+    );
+
+    return updatedStudent;
   }
 
-  remove(id: number) {
+  async remove(id: number) {
+    const student = await this.prisma.student.findUnique({
+      where: { id },
+    });
+
+    await this.auditService.createLog(
+      'DELETE',
+      'Student',
+      id,
+      undefined,
+      student,
+      undefined,
+    );
+
     return this.prisma.student.delete({
       where: { id },
     });
