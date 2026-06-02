@@ -23,12 +23,14 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
 import { AuditModule } from './audit/audit.module';
 import { KpiModule } from './kpi/kpi.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 @Module({
   imports: [
     PrismaModule,
     TeacherDashboardModule,
     PairTimesModule,
     AnalyticsModule,
+    DashboardModule,
     KpiModule,
     LessonSessionsModule,
     AdminDashboardModule,
