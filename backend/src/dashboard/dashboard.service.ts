@@ -2,48 +2,85 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-
+import { DashboardFilterDto } from './dto/dashboard-filter.dto';
 @Injectable()
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
 
-  async getOverview() {
-    const students = await this.prisma.student.count();
+  async getOverview(filter: DashboardFilterDto) {
+    const where = this.buildAttendanceWhere(filter);
 
-    const teachers = await this.prisma.teacher.count();
-
-    const groups = await this.prisma.academicGroup.count();
-
-    const attendance = await this.prisma.attendance.count();
+    const totalAttendance = await this.prisma.attendance.count({
+      where,
+    });
 
     const presentAttendance = await this.prisma.attendance.count({
       where: {
+        ...where,
+
         status: {
           in: ['PRESENT', 'LATE'],
         },
       },
     });
 
-    const attendancePercent =
-      attendance === 0
-        ? 0
-        : Number(((presentAttendance / attendance) * 100).toFixed(2));
+    const students = await this.prisma.student.count();
+
+    const teachers = await this.prisma.teacher.count();
+
+    const groups = await this.prisma.academicGroup.count();
 
     return {
       students,
       teachers,
       groups,
-      attendanceRecords: attendance,
-      attendancePercent,
+      attendanceRecords: totalAttendance,
+
+      attendancePercent:
+        totalAttendance === 0
+          ? 0
+          : Number(((presentAttendance / totalAttendance) * 100).toFixed(2)),
     };
   }
+  private buildAttendanceWhere(filter: DashboardFilterDto) {
+    return {
+      lessonSession: {
+        ...(filter.groupId && {
+          groupId: filter.groupId,
+        }),
 
-  async getTopGroups() {
+        ...(filter.teacherId && {
+          teacherId: filter.teacherId,
+        }),
+
+        ...(filter.subjectId && {
+          subjectId: filter.subjectId,
+        }),
+
+        ...(filter.startDate || filter.endDate
+          ? {
+              lessonDate: {
+                ...(filter.startDate && {
+                  gte: new Date(filter.startDate),
+                }),
+
+                ...(filter.endDate && {
+                  lte: new Date(filter.endDate),
+                }),
+              },
+            }
+          : {}),
+      },
+    };
+  }
+  async getTopGroups(filter: DashboardFilterDto) {
     const groups = await this.prisma.academicGroup.findMany({
       include: {
         students: {
           include: {
-            attendances: true,
+            attendances: {
+              where: this.buildAttendanceWhere(filter),
+            },
           },
         },
       },
@@ -78,12 +115,14 @@ export class DashboardService {
       .slice(0, 10);
   }
 
-  async getTopTeachers() {
+  async getTopTeachers(filter: DashboardFilterDto) {
     const teachers = await this.prisma.teacher.findMany({
       include: {
         sessions: {
           include: {
-            attendances: true,
+            attendances: {
+              where: this.buildAttendanceWhere(filter),
+            },
           },
         },
       },
@@ -117,10 +156,12 @@ export class DashboardService {
       .sort((a, b) => b.attendancePercent - a.attendancePercent)
       .slice(0, 10);
   }
-  async getRiskStudents() {
+  async getRiskStudents(filter: DashboardFilterDto) {
     const students = await this.prisma.student.findMany({
       include: {
-        attendances: true,
+        attendances: {
+          where: this.buildAttendanceWhere(filter),
+        },
       },
     });
 
@@ -144,12 +185,14 @@ export class DashboardService {
       .sort((a, b) => a.attendancePercent - b.attendancePercent);
   }
 
-  async getSubjectsAnalytics() {
+  async getSubjectsAnalytics(filter: DashboardFilterDto) {
     const subjects = await this.prisma.subject.findMany({
       include: {
         sessions: {
           include: {
-            attendances: true,
+            attendances: {
+              where: this.buildAttendanceWhere(filter),
+            },
           },
         },
       },
@@ -184,8 +227,10 @@ export class DashboardService {
       .sort((a, b) => a.attendancePercent - b.attendancePercent);
   }
 
-  async getMonthlyAnalytics() {
+  async getMonthlyAnalytics(filter: DashboardFilterDto) {
     const attendances = await this.prisma.attendance.findMany({
+      where: this.buildAttendanceWhere(filter),
+
       select: {
         status: true,
         createdAt: true,
@@ -301,5 +346,109 @@ export class DashboardService {
       }))
       .sort((a, b) => b.absences - a.absences)
       .slice(0, 20);
+  }
+
+  async getAttendanceChangesStatistics() {
+    const totalChanges = await this.prisma.attendanceChangeLog.count();
+
+    const teacherChanges = await this.prisma.attendanceChangeLog.count({
+      where: {
+        teacherId: {
+          not: null,
+        },
+      },
+    });
+
+    const deviceChanges = await this.prisma.attendanceChangeLog.count({
+      where: {
+        deviceId: {
+          not: null,
+        },
+      },
+    });
+
+    return {
+      totalChanges,
+      teacherChanges,
+      deviceChanges,
+    };
+  }
+  async getTeacherModificationRanking() {
+    const teachers = await this.prisma.teacher.findMany({
+      include: {
+        attendanceLogs: true,
+      },
+    });
+
+    return teachers
+      .map((teacher) => ({
+        id: teacher.id,
+        fullName: teacher.fullName,
+        changes: teacher.attendanceLogs.length,
+      }))
+      .sort((a, b) => b.changes - a.changes);
+  }
+
+  async getDeviceAnalytics() {
+    const devices = await this.prisma.device.findMany({
+      include: {
+        auditLogs: true,
+        room: true,
+      },
+    });
+
+    return devices.map((device) => ({
+      id: device.id,
+      serialNumber: device.serialNumber,
+      room: device.room.name,
+      events: device.auditLogs.length,
+    }));
+  }
+
+  async getAttendanceAuditStatistics() {
+    const logs = await this.prisma.attendanceAuditLog.findMany();
+
+    const result = {};
+
+    logs.forEach((log) => {
+      result[log.eventType] = (result[log.eventType] || 0) + 1;
+    });
+
+    return result;
+  }
+
+  async getTerminalSuccessRate() {
+    const logs = await this.prisma.attendanceAuditLog.findMany();
+
+    const success = logs.filter(
+      (x) => x.eventType === 'CHECK_IN_SUCCESS',
+    ).length;
+
+    const total = logs.length;
+
+    return {
+      success,
+      total,
+
+      successRate:
+        total === 0 ? 0 : Number(((success / total) * 100).toFixed(2)),
+    };
+  }
+  async getCancelledLessonsStatistics() {
+    const total = await this.prisma.lessonSession.count();
+
+    const cancelled = await this.prisma.lessonSession.count({
+      where: {
+        isCancelled: true,
+      },
+    });
+
+    return {
+      total,
+      cancelled,
+
+      cancelledPercent:
+        total === 0 ? 0 : Number(((cancelled / total) * 100).toFixed(2)),
+    };
   }
 }
