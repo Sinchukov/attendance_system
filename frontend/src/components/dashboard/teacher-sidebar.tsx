@@ -1,48 +1,52 @@
 "use client";
 
 import Link from "next/link";
-
 import { usePathname } from "next/navigation";
 
 const links = [
   {
-    href: "/admin",
+    href: "/teacher",
     label: "Главная",
   },
 
   {
-    href: "/admin/students",
-    label: "Студенты",
+    href: "/teacher/schedule",
+    label: "Расписание",
   },
 
   {
-    href: "/admin/teachers",
-    label: "Преподаватели",
+    href: "/teacher/sessions",
+    label: "Пары",
   },
 
   {
-    href: "/admin/academic-groups",
+    href: "/teacher/attendance",
+    label: "Посещаемость",
+  },
+
+  {
+    href: "/teacher/groups",
     label: "Группы",
   },
 
   {
-    href: "/admin/subjects",
-    label: "Предметы",
+    href: "/teacher/students",
+    label: "Студенты",
   },
 
   {
-    href: "/admin/rooms",
-    label: "Аудитории",
+    href: "/teacher/statistics",
+    label: "Статистика",
   },
 ];
 
-export function AdminSidebar() {
+export function TeacherSidebar() {
   const pathname = usePathname();
 
   return (
     <aside className="w-[260px] min-h-screen bg-slate-950 border-r border-slate-800 p-6">
       <h2 className="text-2xl font-bold text-white mb-10">
-        Admin Panel
+        Teacher Panel
       </h2>
 
       <nav className="space-y-3">

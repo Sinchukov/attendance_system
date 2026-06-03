@@ -147,11 +147,11 @@ export default function AdminGroupsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold text-white">
-            Группы
+            Аудитории
           </h1>
 
           <p className="text-slate-400 mt-2">
-            Управление группами
+            Управление аудиториями
           </p>
         </div>
 
@@ -171,13 +171,13 @@ export default function AdminGroupsPage() {
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
           <h2 className="text-2xl font-bold text-white">
             {editingGroupId
-              ? "Редактирование группы"
-              : "Создание группы"}
+              ? "Редактирование аудитории"
+              : "Создание аудитории"}
           </h2>
 
           <input
             type="text"
-            placeholder="Название группы"
+            placeholder="Название аудитории"
             value={name}
             onChange={(e) =>
               setName(

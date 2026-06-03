@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -112,12 +113,7 @@ export default function LoginPage() {
               Войти
             </button>
 
-            <Link
-              href="/register"
-              className="block text-center text-slate-400 hover:text-white transition text-sm"
-            >
-              Нет аккаунта? Регистрация
-            </Link>
+
           </div>
         </div>
       </main>

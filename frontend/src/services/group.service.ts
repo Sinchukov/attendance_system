@@ -2,14 +2,14 @@ import { api } from "@/lib/api";
 
 export const groupService = {
   async getAll() {
-    return api.get("/groups");
+    return api.get("/academic-groups");
   },
 
   async create(data: {
     name: string;
   }) {
     return api.post(
-      "/groups",
+      "/academic-groups",
       data,
     );
   },
@@ -21,14 +21,14 @@ export const groupService = {
     },
   ) {
     return api.patch(
-      `/groups/${id}`,
+      `/academic-groups/${id}`,
       data,
     );
   },
 
   async delete(id: number) {
     return api.delete(
-      `/groups/${id}`,
+      `/academic-groups/${id}`,
     );
   },
 };
