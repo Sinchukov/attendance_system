@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Pencil, Trash2, Plus } from "lucide-react";
-import { api } from "@/lib/api";
+import { api } from "@/lib/axios";
 
 interface Subject {
   id: number;
@@ -22,8 +22,8 @@ export default function AdminSubjectsPage() {
 
   async function loadSubjects() {
     try {
-      const data = await api.get("/subjects");
-      setSubjects(data);
+      const res = await api.get("/subjects");
+      setSubjects(res.data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -34,8 +34,8 @@ export default function AdminSubjectsPage() {
   async function handleCreate() {
     if (!name.trim()) return;
     try {
-      const created = await api.post("/subjects", { name });
-      setSubjects((prev) => [...prev, created]);
+      const res = await api.post("/subjects", { name });
+      setSubjects((prev) => [...prev, res.data]);
       resetForm();
     } catch (error) {
       console.error(error);
@@ -45,9 +45,9 @@ export default function AdminSubjectsPage() {
   async function handleUpdate() {
     if (!editingId || !name.trim()) return;
     try {
-      const updated = await api.patch(`/subjects/${editingId}`, { name });
+      const res = await api.patch(`/subjects/${editingId}`, { name });
       setSubjects((prev) =>
-        prev.map((s) => (s.id === editingId ? updated : s))
+        prev.map((s) => (s.id === editingId ? res.data : s))
       );
       resetForm();
     } catch (error) {

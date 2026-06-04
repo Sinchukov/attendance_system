@@ -1,469 +1,210 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
-
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-
 import { format } from "date-fns";
-
 import { ru } from "date-fns/locale";
+import { Search, MessageSquare, X } from "lucide-react";
+import { api } from "@/lib/axios";
 
-import { Search } from "lucide-react";
-
-import { attendanceService } from "@/services/attendance.service";
-
-import { AuthGuard } from "@/components/auth/auth-guard";
+type Status = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED" | "PENDING";
 
 interface AttendanceItem {
   id: number;
-
-  status: string;
-
+  status: Status;
   comment?: string;
-
-  student: {
-    id: number;
-
-    fullName: string;
-
-    studentCardNo: string;
-  };
+  student: { id: number; fullName: string; studentCardNo: string };
 }
 
 interface SessionData {
   id: number;
-
   lessonDate: string;
-
-  subject: {
-    name: string;
-  };
-
-  room: {
-    name: string;
-  };
-
-  group: {
-    name: string;
-  };
-
-  pairTime: {
-    startTime: string;
-    endTime: string;
-  };
-
+  lessonType: string;
+  subject: { name: string };
+  room: { name: string };
+  group: { name: string };
+  subdivision?: { name: string } | null;
+  pairTime: { startTime: string; endTime: string };
   attendances: AttendanceItem[];
 }
 
+const STATUS_CONFIG: Record<Status, { label: string; active: string; idle: string }> = {
+  PRESENT: { label: "Присутствует", active: "bg-green-600 text-white", idle: "bg-slate-800 text-slate-300 hover:bg-green-900/50 hover:text-green-300" },
+  LATE:    { label: "Опоздал",      active: "bg-amber-500 text-white", idle: "bg-slate-800 text-slate-300 hover:bg-amber-900/50 hover:text-amber-300" },
+  ABSENT:  { label: "Отсутствует",  active: "bg-red-600 text-white",   idle: "bg-slate-800 text-slate-300 hover:bg-red-900/50 hover:text-red-300" },
+  EXCUSED: { label: "Уважительная", active: "bg-blue-600 text-white",  idle: "bg-slate-800 text-slate-300 hover:bg-blue-900/50 hover:text-blue-300" },
+  PENDING: { label: "—",            active: "bg-slate-700 text-white", idle: "bg-slate-800 text-slate-400" },
+};
+
 export default function AttendancePage() {
-  const searchParams =
-    useSearchParams();
+  const searchParams = useSearchParams();
+  const sessionId = searchParams.get("sessionId") ? Number(searchParams.get("sessionId")) : null;
 
-  const sessionIdParam =
-    searchParams.get("sessionId");
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [loading, setLoading] = useState(!!sessionId);
+  const [search, setSearch] = useState("");
+  const [commentModal, setCommentModal] = useState<{ id: number; comment: string } | null>(null);
 
-  const sessionId =
-    sessionIdParam
-      ? Number(sessionIdParam)
-      : null;
+  useEffect(() => {
+    if (!sessionId) return;
+    api.get(`/lesson-sessions/${sessionId}/students`)
+      .then(res => setSession(res.data))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [sessionId]);
 
-  const [session, setSession] =
-    useState<SessionData | null>(
-      null,
-    );
-
-const isValidSession =
-  sessionId !== null;
-
-const [loading, setLoading] =
-  useState(isValidSession);
-
-  const [search, setSearch] =
-    useState("");
-
-useEffect(() => {
-  if (!isValidSession) {
-    return;
-  }
-
-  const currentSessionId =
-    sessionId;
-
-  async function loadSession() {
+  async function changeStatus(attendanceId: number, status: Status) {
     try {
-      const data =
-        await attendanceService.getSessionStudents(
-          currentSessionId!,
-        );
-
-      setSession(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+      const res = await api.patch(`/attendance/${attendanceId}`, { status });
+      setSession(prev => prev && ({
+        ...prev,
+        attendances: prev.attendances.map(a =>
+          a.id === attendanceId ? { ...a, status: res.data.status } : a
+        ),
+      }));
+    } catch (e) { console.error(e); }
   }
 
-  void loadSession();
-}, [sessionId, isValidSession]);
-  async function changeStatus(
-    attendanceId: number,
-    data: {
-      status:
-        | "PRESENT"
-        | "LATE"
-        | "ABSENT"
-        | "EXCUSED";
-
-      comment?: string;
-    },
-  ) {
+  async function saveComment() {
+    if (!commentModal) return;
     try {
-      const updated =
-        await attendanceService.updateAttendance(
-          attendanceId,
-          data,
-        );
-
-      setSession((prev) => {
-        if (!prev) {
-          return prev;
-        }
-
-        return {
-          ...prev,
-
-          attendances:
-            prev.attendances.map(
-              (item) =>
-                item.id ===
-                attendanceId
-                  ? {
-                      ...item,
-
-                      status:
-                        updated.status,
-
-                      comment:
-                        updated.comment,
-                    }
-                  : item,
-            ),
-        };
-      });
-    } catch (error) {
-      console.error(error);
-    }
+      await api.patch(`/attendance/${commentModal.id}`, { comment: commentModal.comment });
+      setSession(prev => prev && ({
+        ...prev,
+        attendances: prev.attendances.map(a =>
+          a.id === commentModal.id ? { ...a, comment: commentModal.comment } : a
+        ),
+      }));
+      setCommentModal(null);
+    } catch (e) { console.error(e); }
   }
 
-  const filteredStudents =
-    useMemo(() => {
-      if (!session) {
-        return [];
-      }
-
-      return session.attendances.filter(
-        (item) =>
-          item.student.fullName
-            .toLowerCase()
-            .includes(
-              search.toLowerCase(),
-            ),
-      );
-    }, [session, search]);
+  const filtered = useMemo(() =>
+    (session?.attendances ?? []).filter(a =>
+      a.student.fullName.toLowerCase().includes(search.toLowerCase())
+    ), [session, search]);
 
   const stats = useMemo(() => {
-    if (!session) {
-      return {
-        total: 0,
-        present: 0,
-        absent: 0,
-        late: 0,
-      };
-    }
-
+    const all = session?.attendances ?? [];
     return {
-      total:
-        session.attendances.length,
-
-      present:
-        session.attendances.filter(
-          (a) =>
-            a.status ===
-            "PRESENT",
-        ).length,
-
-      absent:
-        session.attendances.filter(
-          (a) =>
-            a.status ===
-            "ABSENT",
-        ).length,
-
-      late:
-        session.attendances.filter(
-          (a) =>
-            a.status === "LATE",
-        ).length,
+      total: all.length,
+      present: all.filter(a => a.status === "PRESENT").length,
+      late: all.filter(a => a.status === "LATE").length,
+      absent: all.filter(a => a.status === "ABSENT").length,
     };
   }, [session]);
 
-  if (!sessionId) {
-    return (
-      <div className="text-white text-xl">
-        Не выбрана пара
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="text-white text-xl">
-        Загрузка посещаемости...
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="text-white text-xl">
-        Пара не найдена
-      </div>
-    );
-  }
+  if (!sessionId) return <div className="text-white text-xl">Не выбрана пара. Перейдите из журнала или главной страницы.</div>;
+  if (loading) return <div className="text-white text-xl">Загрузка...</div>;
+  if (!session) return <div className="text-white text-xl">Пара не найдена.</div>;
 
   return (
-    <AuthGuard>
-      <div className="space-y-8">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-white">
-                {
-                  session.subject
-                    .name
-                }
-              </h1>
-
-              <p className="text-slate-400 mt-3">
-                Группа{" "}
-                {
-                  session.group
-                    .name
-                }
-              </p>
-
-              <p className="text-slate-400">
-                Аудитория{" "}
-                {
-                  session.room
-                    .name
-                }
-              </p>
-
-              <p className="text-slate-400">
-                {format(
-                  new Date(
-                    session.lessonDate,
-                  ),
-                  "d MMMM yyyy",
-                  {
-                    locale: ru,
-                  },
-                )}
-              </p>
-            </div>
-
-            <div className="bg-blue-600 text-white px-5 py-3 rounded-2xl font-bold text-lg">
-              {
-                session.pairTime
-                  .startTime
-              }
-              {" - "}
-              {
-                session.pairTime
-                  .endTime
-              }
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
-            <p className="text-slate-400">
-              Всего
+    <div className="space-y-8">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-bold text-white">{session.subject.name}</h1>
+            <p className="text-slate-400 mt-1">
+              {session.group.name}{session.subdivision ? ` · ${session.subdivision.name}` : ""}
+              {" · "}Ауд. {session.room.name}
             </p>
-
-            <h2 className="text-4xl font-bold text-white mt-2">
-              {stats.total}
-            </h2>
-          </div>
-
-          <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
-            <p className="text-slate-400">
-              Присутствуют
+            <p className="text-slate-400 text-sm mt-1">
+              {format(new Date(session.lessonDate), "d MMMM yyyy", { locale: ru })}
             </p>
-
-            <h2 className="text-4xl font-bold text-green-500 mt-2">
-              {stats.present}
-            </h2>
           </div>
-
-          <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
-            <p className="text-slate-400">
-              Опоздали
-            </p>
-
-            <h2 className="text-4xl font-bold text-yellow-500 mt-2">
-              {stats.late}
-            </h2>
+          <div className="bg-blue-600 text-white px-5 py-3 rounded-xl font-bold text-lg">
+            {session.pairTime.startTime} — {session.pairTime.endTime}
           </div>
-
-          <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800">
-            <p className="text-slate-400">
-              Отсутствуют
-            </p>
-
-            <h2 className="text-4xl font-bold text-red-500 mt-2">
-              {stats.absent}
-            </h2>
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-3">
-          <Search
-            size={20}
-            className="text-slate-400"
-          />
-
-          <input
-            type="text"
-            placeholder="Поиск студента..."
-            value={search}
-            onChange={(e) =>
-              setSearch(
-                e.target.value,
-              )
-            }
-            className="bg-transparent outline-none text-white w-full"
-          />
-        </div>
-
-        <div className="space-y-4">
-          {filteredStudents.map(
-            (item) => (
-              <div
-                key={item.id}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-6"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-xl font-bold text-white">
-                      {
-                        item.student
-                          .fullName
-                      }
-                    </h2>
-
-                    <p className="text-slate-400 mt-1">
-                      {
-                        item.student
-                          .studentCardNo
-                      }
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      onClick={() =>
-                        changeStatus(
-                          item.id,
-                          {
-                            status:
-                              "PRESENT",
-                          },
-                        )
-                      }
-                      className={`px-4 py-2 rounded-xl font-semibold transition ${
-                        item.status ===
-                        "PRESENT"
-                          ? "bg-green-600 text-white"
-                          : "bg-green-100 text-green-700"
-                      }`}
-                    >
-                      PRESENT
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        changeStatus(
-                          item.id,
-                          {
-                            status:
-                              "LATE",
-                          },
-                        )
-                      }
-                      className={`px-4 py-2 rounded-xl font-semibold transition ${
-                        item.status ===
-                        "LATE"
-                          ? "bg-yellow-500 text-white"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      LATE
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        changeStatus(
-                          item.id,
-                          {
-                            status:
-                              "ABSENT",
-                          },
-                        )
-                      }
-                      className={`px-4 py-2 rounded-xl font-semibold transition ${
-                        item.status ===
-                        "ABSENT"
-                          ? "bg-red-600 text-white"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      ABSENT
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        changeStatus(
-                          item.id,
-                          {
-                            status:
-                              "EXCUSED",
-                          },
-                        )
-                      }
-                      className={`px-4 py-2 rounded-xl font-semibold transition ${
-                        item.status ===
-                        "EXCUSED"
-                          ? "bg-blue-600 text-white"
-                          : "bg-blue-100 text-blue-700"
-                      }`}
-                    >
-                      EXCUSED
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ),
-          )}
         </div>
       </div>
-    </AuthGuard>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "Всего", value: stats.total, color: "text-white" },
+          { label: "Присутствуют", value: stats.present, color: "text-green-400" },
+          { label: "Опоздали", value: stats.late, color: "text-amber-400" },
+          { label: "Отсутствуют", value: stats.absent, color: "text-red-400" },
+        ].map(c => (
+          <div key={c.label} className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <p className="text-slate-400 text-sm">{c.label}</p>
+            <p className={`text-3xl font-bold mt-1 ${c.color}`}>{c.value}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-3">
+        <Search size={18} className="text-slate-400 shrink-0" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Поиск студента..."
+          className="bg-transparent outline-none text-white w-full placeholder:text-slate-500"
+        />
+      </div>
+
+      <div className="space-y-3">
+        {filtered.map(item => (
+          <div key={item.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div>
+                <p className="text-white font-semibold text-lg">{item.student.fullName}</p>
+                <p className="text-slate-500 text-sm">#{item.student.studentCardNo}</p>
+                {item.comment && (
+                  <p className="text-slate-400 text-sm mt-1 italic">💬 {item.comment}</p>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(["PRESENT", "LATE", "ABSENT", "EXCUSED"] as Status[]).map(status => (
+                  <button
+                    key={status}
+                    onClick={() => changeStatus(item.id, status)}
+                    className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition ${
+                      item.status === status ? STATUS_CONFIG[status].active : STATUS_CONFIG[status].idle
+                    }`}
+                  >
+                    {STATUS_CONFIG[status].label}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCommentModal({ id: item.id, comment: item.comment ?? "" })}
+                  className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 transition"
+                  title="Добавить комментарий"
+                >
+                  <MessageSquare size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {commentModal && (
+        <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50 p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-8 w-full max-w-md space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-white">Комментарий</h2>
+              <button onClick={() => setCommentModal(null)} className="text-slate-400 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            <textarea
+              value={commentModal.comment}
+              onChange={e => setCommentModal({ ...commentModal, comment: e.target.value })}
+              placeholder="Причина отсутствия, опоздания или другое..."
+              rows={3}
+              className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white outline-none resize-none"
+            />
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setCommentModal(null)} className="bg-slate-700 hover:bg-slate-600 transition px-5 py-2.5 rounded-xl text-white font-semibold">
+                Отмена
+              </button>
+              <button onClick={saveComment} className="bg-blue-600 hover:bg-blue-700 transition px-5 py-2.5 rounded-xl text-white font-semibold">
+                Сохранить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

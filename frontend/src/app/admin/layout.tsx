@@ -41,7 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div>
           <div className="p-6 border-b border-slate-800">
             <h1 className="text-lg font-bold text-white">Attendance System</h1>
-            <p className="text-xs text-slate-400 mt-1">Administrator Panel</p>
+            <p className="text-xs text-slate-400 mt-1">Панель администратора</p>
           </div>
           <nav className="p-3 flex flex-col gap-1">
             {navItems.map(({ href, label, icon: Icon }) => {

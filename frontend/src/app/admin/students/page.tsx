@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -62,30 +63,32 @@ async function createStudent() {
     return;
   }
 
-  await StudentsApi.create(form);
-
-  setShowCreateModal(false);
-
-  setForm({
-    fullName: '',
-    studentCardNo: '',
-    groupId: 0,
-  });
-
-  await loadData();
+  try {
+    await StudentsApi.create(form);
+    setShowCreateModal(false);
+    setForm({
+      fullName: '',
+      studentCardNo: '',
+      groupId: 0,
+    });
+    await loadData();
+  } catch (error: any) {
+    alert(error?.response?.data?.message ?? 'Ошибка при создании студента');
+  }
 }
   async function deleteStudent(id: number) {
-    const confirmed = confirm(
-      "Delete student?",
-    );
+    const confirmed = confirm("Удалить студента?");
 
     if (!confirmed) {
       return;
     }
 
-    await StudentsApi.delete(id);
-
-    await loadData();
+    try {
+      await StudentsApi.delete(id);
+      await loadData();
+    } catch (error: any) {
+      alert(error?.response?.data?.message ?? 'Ошибка при удалении студента');
+    }
   }
 
   const filteredStudents = useMemo(() => {
