@@ -6,8 +6,4 @@ export interface PairTime {
   startTime: string;
 
   endTime: string;
-
-  createdAt?: string;
-
-  updatedAt?: string;
 }

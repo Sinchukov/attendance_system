@@ -1,132 +1,85 @@
-import {api} from "@/lib/axios";
+import { api } from "../axios";
 
 import { AdminKpi } from "@/types/admin-kpi";
+
 import { AdminStatistics } from "@/types/admin-statistics";
 
-export const AdminDashboardApi = {
-  getStatistics() {
-    return api.get<AdminStatistics>(
-      "/admin-dashboard/statistics",
-    );
-  },
+export async function getKpi(): Promise<AdminKpi> {
+  const response = await api.get(
+    "/admin-dashboard/kpi",
+  );
 
-  getKpi() {
-    return api.get<AdminKpi>(
-      "/admin-dashboard/kpi",
-    );
-  },
+  return response.data;
+}
 
-  getAttendanceStatistics() {
-    return api.get(
-      "/admin-dashboard/attendance-statistics",
-    );
-  },
+export async function getStatistics(): Promise<AdminStatistics> {
+  const response = await api.get(
+    "/admin-dashboard/statistics",
+  );
 
-  getTopAbsentStudents() {
-    return api.get(
-      "/admin-dashboard/top-absent-students",
-    );
-  },
+  return response.data;
+}
 
-  getTopGroups() {
-    return api.get(
-      "/admin-dashboard/top-groups",
-    );
-  },
+export async function getUsers() {
+  const response = await api.get(
+    "/admin-dashboard/users",
+  );
 
-  getUpcomingSessions() {
-    return api.get(
-      "/admin-dashboard/upcoming-sessions",
-    );
-  },
+  return response.data;
+}
 
-  getAuditLogs() {
-    return api.get(
-      "/admin-dashboard/audit-logs",
-    );
-  },
+export async function getTeachers() {
+  const response = await api.get(
+    "/admin-dashboard/teachers",
+  );
 
-  getAuditLog(id: number) {
-    return api.get(
-      `/admin-dashboard/audit-logs/${id}`,
-    );
-  },
+  return response.data;
+}
 
-  getUsers() {
-    return api.get(
-      "/admin-dashboard/users",
-    );
-  },
+export async function getStudents() {
+  const response = await api.get(
+    "/admin-dashboard/students",
+  );
 
-  getUser(id: number) {
-    return api.get(
-      `/admin-dashboard/users/${id}`,
-    );
-  },
+  return response.data;
+}
 
-  activateUser(id: number) {
-    return api.patch(
-      `/admin-dashboard/users/${id}/activate`,
-    );
-  },
+export async function getGroups() {
+  const response = await api.get(
+    "/admin-dashboard/groups",
+  );
 
-  deactivateUser(id: number) {
-    return api.patch(
-      `/admin-dashboard/users/${id}/deactivate`,
-    );
-  },
+  return response.data;
+}
 
-  changePassword(
-    userId: number,
-    password: string,
-  ) {
-    return api.patch(
-      `/admin-dashboard/users/${userId}/password`,
-      {
-        password,
-      },
-    );
-  },
+export async function getSubjects() {
+  const response = await api.get(
+    "/admin-dashboard/subjects",
+  );
 
-  getTeachers() {
-    return api.get(
-      "/admin-dashboard/teachers",
-    );
-  },
+  return response.data;
+}
 
-  getStudents() {
-    return api.get(
-      "/admin-dashboard/students",
-    );
-  },
+export async function getRooms() {
+  const response = await api.get(
+    "/admin-dashboard/rooms",
+  );
 
-  getGroups() {
-    return api.get(
-      "/admin-dashboard/groups",
-    );
-  },
+  return response.data;
+}
 
-  getSubjects() {
-    return api.get(
-      "/admin-dashboard/subjects",
-    );
-  },
+export async function getDevices() {
+  const response = await api.get(
+    "/admin-dashboard/devices",
+  );
 
-  getRooms() {
-    return api.get(
-      "/admin-dashboard/rooms",
-    );
-  },
+  return response.data;
+}
 
-  getDevices() {
-    return api.get(
-      "/admin-dashboard/devices",
-    );
-  },
+export async function getSchedule() {
+  const response = await api.get(
+    "/admin-dashboard/schedule",
+  );
 
-  getSchedule() {
-    return api.get(
-      "/admin-dashboard/schedule",
-    );
-  },
-};
+  return response.data;
+}

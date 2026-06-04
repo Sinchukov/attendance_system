@@ -1,375 +1,284 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import {
-  Pencil,
-  Trash2,
-  Plus,
-} from "lucide-react";
+import { Student } from "@/types/student";
 
-import { studentService } from "@/services/student.service";
+import { AcademicGroup } from "@/types/academic-group";
 
-import { groupService } from "@/services/group.service";
+import { StudentsApi } from "@/lib/api/students.api";
 
-interface Student {
-  id: number;
+import { getGroups } from "@/lib/api/admin-dashboard.api";
 
-  fullName: string;
+export default function StudentsPage() {
+  const [students, setStudents] = useState<Student[]>([]);
 
-  studentCardNo: string;
+  const [groups, setGroups] = useState<AcademicGroup[]>([]);
 
-  group: {
-    id: number;
+  const [loading, setLoading] = useState(true);
 
-    name: string;
-  };
-}
+  const [search, setSearch] = useState("");
 
-interface Group {
-  id: number;
-
-  name: string;
-}
-
-export default function AdminStudentsPage() {
-  const [students, setStudents] =
-    useState<Student[]>([]);
-
-  const [groups, setGroups] =
-    useState<Group[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [isCreating, setIsCreating] =
+  const [showCreateModal, setShowCreateModal] =
     useState(false);
 
-  const [editingStudentId, setEditingStudentId] =
-    useState<number | null>(null);
-
-  const [form, setForm] =
-    useState({
-      fullName: "",
-
-      studentCardNo: "",
-
-      groupId: "",
-    });
+  const [form, setForm] = useState({
+    fullName: "",
+    studentCardNo: "",
+    groupId: 0,
+  });
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const [
-          studentsData,
-          groupsData,
-        ] = await Promise.all([
-          studentService.getAll(),
-
-          groupService.getAll(),
-        ]);
-
-        setStudents(studentsData);
-
-        setGroups(groupsData);
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     void loadData();
   }, []);
 
-  async function handleCreate() {
+  async function loadData() {
     try {
-      const created =
-        await studentService.create({
-          fullName: form.fullName,
+      const [studentsResponse, groupsResponse] =
+        await Promise.all([
+          StudentsApi.getAll(),
+          getGroups(),
+        ]);
 
-          studentCardNo:
-            form.studentCardNo,
+      setStudents(studentsResponse.data);
 
-          groupId: Number(
-            form.groupId,
-          ),
-        });
-
-      setStudents((prev) => [
-        ...prev,
-        created,
-      ]);
-
-      resetForm();
-    } catch (error) {
-      console.error(error);
+      setGroups(groupsResponse);
+    } finally {
+      setLoading(false);
     }
   }
 
-  async function handleUpdate() {
-    if (!editingStudentId) {
+  async function createStudent() {
+    await StudentsApi.create(form);
+
+    setShowCreateModal(false);
+
+    setForm({
+      fullName: "",
+      studentCardNo: "",
+      groupId: 0,
+    });
+
+    await loadData();
+  }
+
+  async function deleteStudent(id: number) {
+    const confirmed = confirm(
+      "Delete student?",
+    );
+
+    if (!confirmed) {
       return;
     }
 
-    try {
-      const updated =
-        await studentService.update(
-          editingStudentId,
-          {
-            fullName: form.fullName,
+    await StudentsApi.delete(id);
 
-            studentCardNo:
-              form.studentCardNo,
-
-            groupId: Number(
-              form.groupId,
-            ),
-          },
-        );
-
-      setStudents((prev) =>
-        prev.map((student) =>
-          student.id ===
-          editingStudentId
-            ? updated
-            : student,
-        ),
-      );
-
-      resetForm();
-    } catch (error) {
-      console.error(error);
-    }
+    await loadData();
   }
 
-  async function handleDelete(
-    id: number,
-  ) {
-    try {
-      await studentService.delete(id);
-
-      setStudents((prev) =>
-        prev.filter(
-          (student) =>
-            student.id !== id,
-        ),
-      );
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  function startEdit(
-    student: Student,
-  ) {
-    setEditingStudentId(student.id);
-
-    setForm({
-      fullName:
-        student.fullName,
-
-      studentCardNo:
-        student.studentCardNo,
-
-      groupId: String(
-        student.group.id,
-      ),
-    });
-
-    setIsCreating(true);
-  }
-
-  function resetForm() {
-    setForm({
-      fullName: "",
-
-      studentCardNo: "",
-
-      groupId: "",
-    });
-
-    setEditingStudentId(null);
-
-    setIsCreating(false);
-  }
+  const filteredStudents = useMemo(() => {
+    return students.filter(
+      (student) =>
+        student.fullName
+          .toLowerCase()
+          .includes(search.toLowerCase()) ||
+        student.studentCardNo.includes(search),
+    );
+  }, [students, search]);
 
   if (loading) {
     return (
-      <div className="text-white text-xl">
-        Загрузка студентов...
+      <div className="text-xl">
+        Loading students...
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-4xl font-bold text-white">
-            Студенты
+          <h1 className="text-3xl font-bold">
+            Students
           </h1>
 
-          <p className="text-slate-400 mt-2">
-            Управление студентами
-            университета
+          <p className="text-slate-500 mt-2">
+            Student management
           </p>
         </div>
 
         <button
           onClick={() =>
-            setIsCreating(true)
+            setShowCreateModal(true)
           }
-          className="bg-blue-600 hover:bg-blue-700 transition px-5 py-3 rounded-xl text-white font-semibold flex items-center gap-2"
+          className="bg-blue-600 text-white px-5 py-2 rounded-lg"
         >
-          <Plus size={20} />
-
-          Добавить
+          Add Student
         </button>
       </div>
 
-      {isCreating && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
-          <h2 className="text-2xl font-bold text-white">
-            {editingStudentId
-              ? "Редактирование студента"
-              : "Создание студента"}
-          </h2>
+      <input
+        value={search}
+        onChange={(e) =>
+          setSearch(e.target.value)
+        }
+        placeholder="Search student..."
+        className="w-full border rounded-lg p-3"
+      />
 
-          <input
-            type="text"
-            placeholder="ФИО"
-            value={form.fullName}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                fullName:
-                  e.target.value,
-              })
-            }
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white outline-none"
-          />
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-slate-100">
+              <th className="p-4 text-left">
+                ID
+              </th>
 
-          <input
-            type="text"
-            placeholder="Номер студенческого"
-            value={
-              form.studentCardNo
-            }
-            onChange={(e) =>
-              setForm({
-                ...form,
-                studentCardNo:
-                  e.target.value,
-              })
-            }
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white outline-none"
-          />
+              <th className="p-4 text-left">
+                Full Name
+              </th>
 
-          <select
-            value={form.groupId}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                groupId:
-                  e.target.value,
-              })
-            }
-            className="w-full bg-slate-800 border border-slate-700 rounded-xl p-4 text-white outline-none"
-          >
-            <option value="">
-              Выберите группу
-            </option>
+              <th className="p-4 text-left">
+                Student Card
+              </th>
 
-            {groups.map((group) => (
-              <option
-                key={group.id}
-                value={group.id}
+              <th className="p-4 text-left">
+                Group
+              </th>
+
+              <th className="p-4 text-left">
+                Actions
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredStudents.map(
+              (student) => (
+                <tr
+                  key={student.id}
+                  className="border-t"
+                >
+                  <td className="p-4">
+                    {student.id}
+                  </td>
+
+                  <td className="p-4">
+                    {student.fullName}
+                  </td>
+
+                  <td className="p-4">
+                    {
+                      student.studentCardNo
+                    }
+                  </td>
+
+                  <td className="p-4">
+                    {student.group?.name}
+                  </td>
+
+                  <td className="p-4">
+                    <button
+                      onClick={() =>
+                        deleteStudent(
+                          student.id,
+                        )
+                      }
+                      className="text-red-600"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ),
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex justify-center items-center">
+          <div className="bg-white rounded-xl p-6 w-[500px]">
+            <h2 className="text-2xl font-bold mb-6">
+              Create Student
+            </h2>
+
+            <div className="space-y-4">
+              <input
+                placeholder="Full name"
+                className="w-full border p-3 rounded-lg"
+                value={form.fullName}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    fullName:
+                      e.target.value,
+                  })
+                }
+              />
+
+              <input
+                placeholder="Student card number"
+                className="w-full border p-3 rounded-lg"
+                value={form.studentCardNo}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    studentCardNo:
+                      e.target.value,
+                  })
+                }
+              />
+
+              <select
+                className="w-full border p-3 rounded-lg"
+                value={form.groupId}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    groupId: Number(
+                      e.target.value,
+                    ),
+                  })
+                }
               >
-                {group.name}
-              </option>
-            ))}
-          </select>
+                <option value={0}>
+                  Select group
+                </option>
 
-          <div className="flex gap-4">
-            <button
-              onClick={
-                editingStudentId
-                  ? handleUpdate
-                  : handleCreate
-              }
-              className="bg-green-600 hover:bg-green-700 transition px-5 py-3 rounded-xl text-white font-semibold"
-            >
-              {editingStudentId
-                ? "Сохранить"
-                : "Создать"}
-            </button>
+                {groups.map((group) => (
+                  <option
+                    key={group.id}
+                    value={group.id}
+                  >
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <button
-              onClick={resetForm}
-              className="bg-slate-700 hover:bg-slate-600 transition px-5 py-3 rounded-xl text-white font-semibold"
-            >
-              Отмена
-            </button>
+            <div className="flex gap-3 justify-end mt-6">
+              <button
+                onClick={() =>
+                  setShowCreateModal(
+                    false,
+                  )
+                }
+                className="border px-4 py-2 rounded-lg"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={createStudent}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg"
+              >
+                Create
+              </button>
+            </div>
           </div>
         </div>
       )}
-
-      <div className="space-y-4">
-        {students.map((student) => (
-          <div
-            key={student.id}
-            className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex items-center justify-between"
-          >
-            <div>
-              <h2 className="text-xl font-bold text-white">
-                {student.fullName}
-              </h2>
-
-              <p className="text-slate-400 mt-1">
-                Группа{" "}
-                {
-                  student.group
-                    .name
-                }
-              </p>
-
-              <p className="text-slate-500">
-                {
-                  student.studentCardNo
-                }
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() =>
-                  startEdit(
-                    student,
-                  )
-                }
-                className="bg-yellow-500 hover:bg-yellow-600 transition p-3 rounded-xl text-white"
-              >
-                <Pencil size={18} />
-              </button>
-
-              <button
-                onClick={() =>
-                  handleDelete(
-                    student.id,
-                  )
-                }
-                className="bg-red-600 hover:bg-red-700 transition p-3 rounded-xl text-white"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

@@ -1,5 +1,4 @@
-import { Student } from './student';
-import { SubjectSubdivision } from './subject-subdivision';
+import { Student } from "./student";
 
 export interface SubjectSubdivisionStudent {
   id: number;
@@ -7,8 +6,6 @@ export interface SubjectSubdivisionStudent {
   subdivisionId: number;
 
   studentId: number;
-
-  subdivision?: SubjectSubdivision;
 
   student?: Student;
 }

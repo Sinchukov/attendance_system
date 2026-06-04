@@ -1,21 +1,29 @@
-import { AttendanceStatus } from "./attendance";
+import { Attendance } from "./attendance";
+import { Device } from "./device";
+import { Teacher } from "./teacher";
 
 export interface AttendanceChangeLog {
   id: number;
 
   attendanceId: number;
 
-  teacherId?: number | null;
+  teacherId: number | null;
 
-  deviceId?: number | null;
+  deviceId: number | null;
 
-  oldStatus?: AttendanceStatus | null;
+  oldStatus: string | null;
 
-  newStatus: AttendanceStatus;
+  newStatus: string;
 
   action: string;
 
-  details?: string | null;
+  details: string | null;
 
   createdAt: string;
+
+  attendance?: Attendance;
+
+  teacher?: Teacher;
+
+  device?: Device;
 }

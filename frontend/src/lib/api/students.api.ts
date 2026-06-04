@@ -1,5 +1,5 @@
-import { api } from "./axios";
-
+import { api } from "../axios";
+import { getStudents } from "@/lib/api/admin-dashboard.api";
 export const StudentsApi = {
   getAll() {
     return api.get("/students");

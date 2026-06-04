@@ -1,13 +1,11 @@
+import { Attendance } from "./attendance";
 import { AcademicGroup } from "./academic-group";
 import { PairTime } from "./pair-time";
 import { Room } from "./room";
-import { Subject } from "./subject";
 import { SubjectSubdivision } from "./subject-subdivision";
+import { Subject } from "./subject";
 import { Teacher } from "./teacher";
-
-export type LessonType =
-  | "LECTURE"
-  | "PRACTICE";
+import { LessonType } from "./schedule-template";
 
 export interface LessonSession {
   id: number;
@@ -26,13 +24,13 @@ export interface LessonSession {
 
   groupId: number;
 
-  subdivisionId?: number | null;
+  subdivisionId: number | null;
 
-  templateId?: number | null;
+  templateId: number | null;
 
   isCancelled: boolean;
 
-  cancellationReason?: string | null;
+  cancellationReason: string | null;
 
   createdAt: string;
 
@@ -46,5 +44,7 @@ export interface LessonSession {
 
   group?: AcademicGroup;
 
-  subdivision?: SubjectSubdivision | null;
+  subdivision?: SubjectSubdivision;
+
+  attendances?: Attendance[];
 }

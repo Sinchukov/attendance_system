@@ -1,3 +1,5 @@
+import { Student } from "./student";
+
 export type AttendanceStatus =
   | "PENDING"
   | "PRESENT"
@@ -14,11 +16,13 @@ export interface Attendance {
 
   status: AttendanceStatus;
 
-  checkIn?: string | null;
+  checkIn: string | null;
 
-  comment?: string | null;
+  comment: string | null;
 
   isManualEdited: boolean;
 
   createdAt: string;
+
+  student?: Student;
 }

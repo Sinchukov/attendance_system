@@ -38,6 +38,7 @@ export default function LoginPage() {
           email,
           password,
         });
+        console.log("LOGIN RESPONSE:", data);
 
       setAuth(
         data.user,
@@ -49,9 +50,9 @@ export default function LoginPage() {
       );
 
       if (data.user.role === "ADMIN") {
-        router.push("/dashboard/admin");
+        router.push("/admin/dashboard");
       } else {
-        router.push("/dashboard/teacher");
+        router.push("/teacher/dashboard");
       }
     } catch (error: any) {
       console.error(error);

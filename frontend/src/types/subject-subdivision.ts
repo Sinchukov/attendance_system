@@ -1,6 +1,6 @@
-import { AcademicGroup } from './academic-group';
-import { Subject } from './subject';
-import { SubjectSubdivisionStudent } from './subject-subdivision-student';
+import { AcademicGroup } from "./academic-group";
+import { Subject } from "./subject";
+import { SubjectSubdivisionStudent } from "./subject-subdivision-student";
 
 export interface SubjectSubdivision {
   id: number;
@@ -11,13 +11,11 @@ export interface SubjectSubdivision {
 
   groupId: number;
 
+  createdAt: string;
+
   subject?: Subject;
 
   group?: AcademicGroup;
 
   students?: SubjectSubdivisionStudent[];
-
-  createdAt?: string;
-
-  updatedAt?: string;
 }

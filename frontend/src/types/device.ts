@@ -1,17 +1,13 @@
-import { Room } from './room';
+import { Room } from "./room";
 
 export interface Device {
   id: number;
-
-  name: string;
 
   serialNumber: string;
 
   roomId: number;
 
+  createdAt: string;
+
   room?: Room;
-
-  createdAt?: string;
-
-  updatedAt?: string;
 }

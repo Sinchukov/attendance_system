@@ -1,5 +1,4 @@
-import { AcademicGroup } from './academic-group';
-import { Attendance } from './attendance';
+import { AcademicGroup } from "./academic-group";
 
 export interface Student {
   id: number;
@@ -10,11 +9,7 @@ export interface Student {
 
   groupId: number;
 
-  group?: AcademicGroup;
-
-  attendances?: Attendance[];
-
   createdAt?: string;
 
-  updatedAt?: string;
+  group?: AcademicGroup;
 }
