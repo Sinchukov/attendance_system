@@ -71,6 +71,24 @@ export class StudentsService {
       where: { id },
     });
 
+    if (!student) {
+      throw new Error('Студент не найден');
+    }
+
+    // Сначала удаляем все связанные записи
+    await this.prisma.attendanceAuditLog.updateMany({
+      where: { studentId: id },
+      data: { studentId: null },
+    });
+
+    await this.prisma.attendance.deleteMany({
+      where: { studentId: id },
+    });
+
+    await this.prisma.subjectSubdivisionStudent.deleteMany({
+      where: { studentId: id },
+    });
+
     await this.auditService.createLog(
       'DELETE',
       'Student',

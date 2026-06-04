@@ -202,7 +202,7 @@ export class SchedulerService {
 
             deviceSerial: 'SYSTEM',
 
-            eventType: AttendanceEventType.INVALID_SESSION,
+            eventType: AttendanceEventType.NO_ACTIVE_SESSION,
 
             message: 'Автоматически создан ABSENT',
 

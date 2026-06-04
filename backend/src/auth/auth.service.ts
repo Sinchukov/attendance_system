@@ -87,7 +87,9 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException('Неверный email или пароль');
     }
-
+    if (!user.isActive) {
+      throw new UnauthorizedException('Аккаунт деактивирован');
+    }
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
