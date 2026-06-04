@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   Body,
   Controller,
@@ -11,7 +13,8 @@ import {
 import { SubjectsService } from './subjects.service';
 
 import { CreateSubjectDto } from './dto/create-subject.dto';
-
+import { Patch } from '@nestjs/common';
+import { Delete } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 import { RolesGuard } from '../auth/roles.guard';
@@ -42,5 +45,25 @@ export class SubjectsController {
     id: number,
   ) {
     return this.subjectsService.findOne(id);
+  }
+  @Patch(':id')
+  @Roles('ADMIN')
+  update(
+    @Param('id', ParseIntPipe)
+    id: number,
+
+    @Body()
+    dto: CreateSubjectDto,
+  ) {
+    return this.subjectsService.update(id, dto);
+  }
+
+  @Delete(':id')
+  @Roles('ADMIN')
+  remove(
+    @Param('id', ParseIntPipe)
+    id: number,
+  ) {
+    return this.subjectsService.remove(id);
   }
 }

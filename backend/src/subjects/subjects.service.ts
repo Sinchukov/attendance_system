@@ -16,7 +16,18 @@ export class SubjectsService {
       },
     });
   }
+  update(id: number, dto: CreateSubjectDto) {
+    return this.prisma.subject.update({
+      where: { id },
+      data: dto,
+    });
+  }
 
+  remove(id: number) {
+    return this.prisma.subject.delete({
+      where: { id },
+    });
+  }
   // ВСЕ ПРЕДМЕТЫ
   async findAll() {
     return this.prisma.subject.findMany({

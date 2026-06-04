@@ -28,6 +28,8 @@ export class AcademicGroupsController {
 
   @Post()
   create(@Body() dto: CreateAcademicGroupDto) {
+    console.log(dto);
+
     return this.service.create(dto);
   }
 

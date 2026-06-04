@@ -40,4 +40,17 @@ export class RoomsService {
       },
     });
   }
+
+  update(id: number, dto: CreateRoomDto) {
+    return this.prisma.room.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  remove(id: number) {
+    return this.prisma.room.delete({
+      where: { id },
+    });
+  }
 }

@@ -2,8 +2,8 @@ import { IsInt } from 'class-validator';
 
 export class CreateSubdivisionStudentDto {
   @IsInt()
-  subdivisionId: number;
+  subdivisionId!: number;
 
   @IsInt()
-  studentId: number;
+  studentId!: number;
 }
