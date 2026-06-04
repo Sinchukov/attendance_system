@@ -48,20 +48,32 @@ export default function StudentsPage() {
     }
   }
 
-  async function createStudent() {
-    await StudentsApi.create(form);
-
-    setShowCreateModal(false);
-
-    setForm({
-      fullName: "",
-      studentCardNo: "",
-      groupId: 0,
-    });
-
-    await loadData();
+async function createStudent() {
+  if (!form.fullName.trim()) {
+    alert('Введите имя студента');
+    return;
+  }
+  if (!form.studentCardNo.trim()) {
+    alert('Введите номер карточки');
+    return;
+  }
+  if (form.groupId === 0) {
+    alert('Выберите группу');
+    return;
   }
 
+  await StudentsApi.create(form);
+
+  setShowCreateModal(false);
+
+  setForm({
+    fullName: '',
+    studentCardNo: '',
+    groupId: 0,
+  });
+
+  await loadData();
+}
   async function deleteStudent(id: number) {
     const confirmed = confirm(
       "Delete student?",

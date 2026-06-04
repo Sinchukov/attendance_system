@@ -52,7 +52,7 @@ export default function LoginPage() {
       if (data.user.role === "ADMIN") {
         router.push("/admin/dashboard");
       } else {
-        router.push("/teacher/dashboard");
+        router.push("/teacher");
       }
     } catch (error: any) {
       console.error(error);

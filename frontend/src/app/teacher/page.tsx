@@ -152,7 +152,7 @@ await lessonSessionService.getMySessions();
         <div className="space-y-4">
           {sessions.map((session) => (
             <Link
-              href={`/dashboard/teacher/attendance?sessionId=${session.id}`}
+              href={`/teacher/attendance?sessionId=${session.id}`}
               key={session.id}
             >
               <div className="border border-slate-200 rounded-xl p-5 flex items-center justify-between hover:bg-slate-50 transition cursor-pointer">
