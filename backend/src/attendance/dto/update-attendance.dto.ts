@@ -9,8 +9,9 @@ import {
 } from 'class-validator';
 
 export class UpdateAttendanceDto {
+  @IsOptional()
   @IsEnum(AttendanceStatus)
-  status!: AttendanceStatus;
+  status?: AttendanceStatus;
 
   @IsOptional()
   @IsDateString()

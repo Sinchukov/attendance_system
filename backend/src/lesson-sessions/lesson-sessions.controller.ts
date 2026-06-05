@@ -11,19 +11,12 @@ import {
 } from '@nestjs/common';
 
 import { CurrentUser } from '../auth/current-user.decorator';
-
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-
 import { RolesGuard } from '../auth/roles.guard';
-
 import { Roles } from '../auth/roles.decorator';
-
 import { LessonSessionsService } from './lesson-sessions.service';
-
 import { CreateLessonSessionDto } from './dto/create-lesson-session.dto';
-
 import { CancelLessonDto } from './dto/cancel-lesson.dto';
-
 import { UpdateAttendanceDto } from '../attendance/dto/update-attendance.dto';
 
 @Controller('lesson-sessions')
@@ -40,12 +33,88 @@ export class LessonSessionsController {
   }
 
   // =====================================================
+  // ГЕНЕРАЦИЯ ПАР ПО ШАБЛОНАМ
+  // =====================================================
+
+  @Post('generate')
+  generate(@Body() body: { date: string }) {
+    return this.lessonSessionsService.generateForDate(new Date(body.date));
+  }
+
+  // =====================================================
   // ВСЕ ПАРЫ
   // =====================================================
 
   @Get()
   findAll() {
     return this.lessonSessionsService.findAll();
+  }
+
+  // =====================================================
+  // ПАРЫ ТЕКУЩЕГО ПРЕПОДАВАТЕЛЯ (статичные /my/* — до /:id)
+  // =====================================================
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('TEACHER')
+  @Get('my')
+  async getMySessions(
+    @CurrentUser() user: { userId: number; email: string; role: string },
+  ) {
+    const teacher = await this.lessonSessionsService.getTeacherByUserId(
+      user.userId,
+    );
+    if (!teacher) return [];
+    return this.lessonSessionsService.getTeacherSessions(teacher.id);
+  }
+
+  // =====================================================
+  // НЕДЕЛЯ ТЕКУЩЕГО ПРЕПОДАВАТЕЛЯ
+  // =====================================================
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('TEACHER')
+  @Get('my/week')
+  async getMyWeekSessions(
+    @CurrentUser() user: { userId: number; email: string; role: string },
+  ) {
+    const teacher = await this.lessonSessionsService.getTeacherByUserId(
+      user.userId,
+    );
+    if (!teacher) return [];
+    return this.lessonSessionsService.getTeacherWeekSessions(teacher.id);
+  }
+
+  // =====================================================
+  // QUERY ENDPOINT (teacher?teacherId=X — до /teacher/:id)
+  // =====================================================
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'TEACHER')
+  @Get('teacher')
+  getTeacherSessionsQuery(@Query('teacherId') teacherId: string) {
+    return this.lessonSessionsService.getTeacherSessions(Number(teacherId));
+  }
+
+  // =====================================================
+  // ПАРЫ КОНКРЕТНОГО ПРЕПОДАВАТЕЛЯ
+  // =====================================================
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'TEACHER')
+  @Get('teacher/:teacherId')
+  findTeacherSessions(@Param('teacherId', ParseIntPipe) teacherId: number) {
+    return this.lessonSessionsService.findTeacherSessions(teacherId);
+  }
+
+  // =====================================================
+  // НЕДЕЛЯ КОНКРЕТНОГО ПРЕПОДАВАТЕЛЯ
+  // =====================================================
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'TEACHER')
+  @Get('teacher/:teacherId/week')
+  getTeacherWeekSessions(@Param('teacherId', ParseIntPipe) teacherId: number) {
+    return this.lessonSessionsService.getTeacherWeekSessions(teacherId);
   }
 
   // =====================================================
@@ -58,49 +127,6 @@ export class LessonSessionsController {
   }
 
   // =====================================================
-  // ГЕНЕРАЦИЯ ПАР ПО ШАБЛОНАМ
-  // =====================================================
-
-  @Post('generate')
-  generate(
-    @Body()
-    body: {
-      date: string;
-    },
-  ) {
-    return this.lessonSessionsService.generateForDate(new Date(body.date));
-  }
-
-  // =====================================================
-  // ОТМЕНА ПАРЫ
-  // =====================================================
-
-  @Patch(':id/cancel')
-  cancel(
-    @Param('id', ParseIntPipe)
-    id: number,
-
-    @Body()
-    dto: CancelLessonDto,
-  ) {
-    return this.lessonSessionsService.cancel(id, dto);
-  }
-
-  // =====================================================
-  // СТУДЕНТЫ НА ПАРЕ
-  // =====================================================
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'TEACHER')
-  @Get(':id/students')
-  findSessionStudents(
-    @Param('id', ParseIntPipe)
-    id: number,
-  ) {
-    return this.lessonSessionsService.findSessionStudents(id);
-  }
-
-  // =====================================================
   // РУЧНОЕ ИЗМЕНЕНИЕ ПОСЕЩАЕМОСТИ
   // =====================================================
 
@@ -108,106 +134,40 @@ export class LessonSessionsController {
   @Roles('ADMIN', 'TEACHER')
   @Patch('attendance/:attendanceId')
   updateAttendance(
-    @Param('attendanceId', ParseIntPipe)
-    attendanceId: number,
-
-    @Body()
-    dto: UpdateAttendanceDto,
+    @Param('attendanceId', ParseIntPipe) attendanceId: number,
+    @Body() dto: UpdateAttendanceDto,
   ) {
     return this.lessonSessionsService.updateAttendance(attendanceId, dto);
   }
 
   // =====================================================
-  // ПАРЫ КОНКРЕТНОГО ПРЕПОДАВАТЕЛЯ
+  // ОТМЕНА ПАРЫ (/:id/cancel — до /:id)
+  // =====================================================
+
+  @Patch(':id/cancel')
+  cancel(@Param('id', ParseIntPipe) id: number, @Body() dto: CancelLessonDto) {
+    return this.lessonSessionsService.cancel(id, dto);
+  }
+
+  // =====================================================
+  // СТУДЕНТЫ НА ПАРЕ (/:id/students — до /:id)
   // =====================================================
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'TEACHER')
-  @Get('teacher/:teacherId')
-  findTeacherSessions(
-    @Param('teacherId', ParseIntPipe)
-    teacherId: number,
-  ) {
-    return this.lessonSessionsService.findTeacherSessions(teacherId);
+  @Get(':id/students')
+  findSessionStudents(@Param('id', ParseIntPipe) id: number) {
+    return this.lessonSessionsService.findSessionStudents(id);
   }
 
   // =====================================================
-  // НЕДЕЛЯ ПРЕПОДАВАТЕЛЯ
+  // ОДНА СЕССИЯ ПО ID (параметрический — всегда последний)
   // =====================================================
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'TEACHER')
-  @Get('teacher/:teacherId/week')
-  getTeacherWeekSessions(
-    @Param('teacherId', ParseIntPipe)
-    teacherId: number,
-  ) {
-    return this.lessonSessionsService.getTeacherWeekSessions(teacherId);
-  }
-
-  // =====================================================
-  // ПОЛУЧЕНИЕ ПАР ТЕКУЩЕГО ПРЕПОДАВАТЕЛЯ
-  // =====================================================
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('TEACHER')
-  @Get('my')
-  async getMySessions(
-    @CurrentUser()
-    user: {
-      userId: number;
-      email: string;
-      role: string;
-    },
-  ) {
-    const teacher = await this.lessonSessionsService.getTeacherByUserId(
-      user.userId,
-    );
-
-    if (!teacher) {
-      return [];
-    }
-
-    return this.lessonSessionsService.getTeacherSessions(teacher.id);
-  }
-
-  // =====================================================
-  // НЕДЕЛЯ ТЕКУЩЕГО ПРЕПОДАВАТЕЛЯ
-  // =====================================================
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('TEACHER')
-  @Get('my/week')
-  async getMyWeekSessions(
-    @CurrentUser()
-    user: {
-      userId: number;
-      email: string;
-      role: string;
-    },
-  ) {
-    const teacher = await this.lessonSessionsService.getTeacherByUserId(
-      user.userId,
-    );
-
-    if (!teacher) {
-      return [];
-    }
-
-    return this.lessonSessionsService.getTeacherWeekSessions(teacher.id);
-  }
-
-  // =====================================================
-  // QUERY ENDPOINT
-  // =====================================================
-
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'TEACHER')
-  @Get('teacher')
-  getTeacherSessionsQuery(
-    @Query('teacherId')
-    teacherId: string,
-  ) {
-    return this.lessonSessionsService.getTeacherSessions(Number(teacherId));
+  @Get(':id')
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.lessonSessionsService.findOne(id);
   }
 }

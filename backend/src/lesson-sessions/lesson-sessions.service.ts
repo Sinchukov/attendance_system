@@ -306,6 +306,19 @@ export class LessonSessionsService {
     });
   }
 
+  async findOne(id: number) {
+    return this.prisma.lessonSession.findUnique({
+      where: { id },
+      include: {
+        subject: true,
+        group: true,
+        room: true,
+        pairTime: true,
+        subdivision: true,
+      },
+    });
+  }
+
   async findSessionStudents(sessionId: number) {
     return this.prisma.attendance.findMany({
       where: {
@@ -326,7 +339,7 @@ export class LessonSessionsService {
   async updateAttendance(
     attendanceId: number,
     dto: {
-      status: AttendanceStatus;
+      status?: AttendanceStatus;
 
       comment?: string;
     },
@@ -347,8 +360,8 @@ export class LessonSessionsService {
       },
 
       data: {
-        status: dto.status,
-        comment: dto.comment ?? null,
+        ...(dto.status !== undefined && { status: dto.status }),
+        ...(dto.comment !== undefined && { comment: dto.comment }),
         isManualEdited: true,
       },
     });

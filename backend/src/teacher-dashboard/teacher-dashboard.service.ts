@@ -92,6 +92,7 @@ export class TeacherDashboardService {
         group: true,
         pairTime: true,
         subdivision: true,
+        attendances: true,
       },
     });
   }

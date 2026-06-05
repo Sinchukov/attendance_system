@@ -494,7 +494,7 @@ export class AttendanceService {
 
         oldStatus: attendance.status,
 
-        newStatus: dto.status,
+        newStatus: dto.status!,
 
         action: 'MANUAL_EDIT',
 
