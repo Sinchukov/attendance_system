@@ -366,16 +366,16 @@ export class LessonSessionsService {
       },
     });
   }
-  async getTeacherWeekSessions(teacherId: number) {
-    const now = new Date();
+  async getTeacherWeekSessions(teacherId: number, dateFrom?: string) {
+    const base = dateFrom ? new Date(dateFrom) : new Date();
 
-    const day = now.getDay();
+    const day = base.getDay();
 
     const diffToMonday = day === 0 ? -6 : 1 - day;
 
-    const monday = new Date(now);
+    const monday = new Date(base);
 
-    monday.setDate(now.getDate() + diffToMonday);
+    monday.setDate(base.getDate() + diffToMonday);
 
     monday.setHours(0, 0, 0, 0);
 

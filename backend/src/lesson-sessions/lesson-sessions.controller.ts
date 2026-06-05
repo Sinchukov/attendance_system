@@ -76,12 +76,16 @@ export class LessonSessionsController {
   @Get('my/week')
   async getMyWeekSessions(
     @CurrentUser() user: { userId: number; email: string; role: string },
+    @Query('dateFrom') dateFrom?: string,
   ) {
     const teacher = await this.lessonSessionsService.getTeacherByUserId(
       user.userId,
     );
     if (!teacher) return [];
-    return this.lessonSessionsService.getTeacherWeekSessions(teacher.id);
+    return this.lessonSessionsService.getTeacherWeekSessions(
+      teacher.id,
+      dateFrom,
+    );
   }
 
   // =====================================================
@@ -113,8 +117,14 @@ export class LessonSessionsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN', 'TEACHER')
   @Get('teacher/:teacherId/week')
-  getTeacherWeekSessions(@Param('teacherId', ParseIntPipe) teacherId: number) {
-    return this.lessonSessionsService.getTeacherWeekSessions(teacherId);
+  getTeacherWeekSessions(
+    @Param('teacherId', ParseIntPipe) teacherId: number,
+    @Query('dateFrom') dateFrom?: string,
+  ) {
+    return this.lessonSessionsService.getTeacherWeekSessions(
+      teacherId,
+      dateFrom,
+    );
   }
 
   // =====================================================
