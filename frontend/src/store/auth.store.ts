@@ -80,8 +80,5 @@ export const useAuthStore =
 
         token: null,
       });
-
-      window.location.href =
-        "/login";
     },
   }));

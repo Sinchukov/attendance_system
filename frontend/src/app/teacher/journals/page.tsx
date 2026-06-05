@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -51,19 +52,29 @@ export default function TeacherJournalsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (!selectedGroup) return;
+ useEffect(() => {
+  if (!selectedGroup) return;
+
+  async function loadSessions() {
     setSessionsLoading(true);
-    api.get("/lesson-sessions/my")
-      .then(res => {
-        const filtered = (res.data as Session[])
-          .filter(s => s.group?.name === groups.find(g => g.id === selectedGroup)?.name)
-          .sort((a, b) => new Date(b.lessonDate).getTime() - new Date(a.lessonDate).getTime());
-        setSessions(filtered);
-      })
-      .catch(console.error)
-      .finally(() => setSessionsLoading(false));
-  }, [selectedGroup, groups]);
+    try {
+      const res = await api.get("/lesson-sessions/my");
+      const filtered = (res.data as Session[])
+        .filter(s => {
+          const session = s as any;
+          return session.group?.id === selectedGroup || session.groupId === selectedGroup;
+        })
+        .sort((a, b) => new Date(b.lessonDate).getTime() - new Date(a.lessonDate).getTime());
+      setSessions(filtered);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSessionsLoading(false);
+    }
+  }
+
+  void loadSessions();
+}, [selectedGroup]);
 
   if (loading) return <div className="text-white text-xl">Загрузка групп...</div>;
 

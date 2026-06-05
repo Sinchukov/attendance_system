@@ -32,14 +32,23 @@ export default function TeacherStatisticsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (!selectedGroup) return;
+useEffect(() => {
+  if (!selectedGroup) return;
+
+  async function loadStats() {
     setStatsLoading(true);
-    api.get(`/teacher-dashboard/groups/${selectedGroup}/statistics`)
-      .then(res => setStats(res.data))
-      .catch(console.error)
-      .finally(() => setStatsLoading(false));
-  }, [selectedGroup]);
+    try {
+      const res = await api.get(`/teacher-dashboard/groups/${selectedGroup}/statistics`);
+      setStats(res.data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setStatsLoading(false);
+    }
+  }
+
+  void loadStats();
+}, [selectedGroup]);
 
   const pct = (n: number) => stats?.total ? Math.round((n / stats.total) * 100) : 0;
 

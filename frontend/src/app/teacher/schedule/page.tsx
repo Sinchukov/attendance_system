@@ -9,10 +9,7 @@ import {
 } from "date-fns";
 
 import { ru } from "date-fns/locale";
-
-import { useAuthStore } from "@/store/auth.store";
-
-import { lessonSessionService } from "@/services/lesson-session.service";
+import { api } from "@/lib/axios";
 
 interface Session {
   id: number;
@@ -53,15 +50,11 @@ export default function SchedulePage() {
   const [loading, setLoading] =
     useState(true);
 
-  const user = useAuthStore(
-    (state) => state.user,
-  );
-
   useEffect(() => {
     async function loadSchedule() {
       try {
-        const data =
-await lessonSessionService.getMyWeekSessions();
+const res = await api.get("/lesson-sessions/my/week");
+const data = res.data;
 
         setSessions(data);
       } catch (error) {
@@ -72,7 +65,7 @@ await lessonSessionService.getMyWeekSessions();
     }
 
     void loadSchedule();
-  }, [user]);
+  }, []);
 
   const weekDays = useMemo(() => {
     const start =

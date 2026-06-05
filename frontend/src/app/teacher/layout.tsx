@@ -36,7 +36,9 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           </div>
           <nav className="p-3 flex flex-col gap-1">
             {navItems.map(({ href, label, icon: Icon }) => {
-              const isActive = pathname === href || pathname.startsWith(href + "/");
+              const isActive = href === "/teacher"
+  ? pathname === "/teacher"
+  : pathname === href || pathname.startsWith(href + "/");
               return (
                 <Link
                   key={href}

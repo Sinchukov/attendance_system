@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -47,10 +48,30 @@ export default function AttendancePage() {
 
   useEffect(() => {
     if (!sessionId) return;
-    api.get(`/lesson-sessions/${sessionId}/students`)
-      .then(res => setSession(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+
+    async function loadData() {
+      try {
+        const [sessionRes, studentsRes] = await Promise.all([
+          api.get(`/lesson-sessions/${sessionId}`),
+          api.get(`/lesson-sessions/${sessionId}/students`),
+        ]);
+
+        const attendances: AttendanceItem[] = studentsRes.data.map((a: any) => ({
+          id: a.id,
+          status: a.status as Status,
+          comment: a.comment ?? undefined,
+          student: a.student,
+        }));
+
+        setSession({ ...sessionRes.data, attendances });
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadData();
   }, [sessionId]);
 
   async function changeStatus(attendanceId: number, status: Status) {
