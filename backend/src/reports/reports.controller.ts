@@ -180,4 +180,25 @@ export class ReportsController {
   getAttendanceByGroup() {
     return this.reportsService.getAttendanceByGroup();
   }
+
+  @Get('excel')
+  async exportFilteredExcel(
+    @Query() filters: ReportFilterDto,
+    @Res() res: Response,
+  ) {
+    const buffer =
+      await this.reportsService.exportFilteredReportToExcel(filters);
+
+    const timestamp = new Date().toISOString().slice(0, 10);
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=attendance-report-${timestamp}.xlsx`,
+    );
+    res.send(buffer);
+  }
 }

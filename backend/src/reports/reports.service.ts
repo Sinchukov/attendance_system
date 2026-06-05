@@ -695,4 +695,224 @@ export class ReportsService {
       };
     });
   }
+
+  // =========================================
+  // ДОБАВИТЬ в backend/src/reports/reports.service.ts
+  // Метод exportFilteredReportToExcel
+  // =========================================
+
+  async exportFilteredReportToExcel(filters: ReportFilterDto): Promise<Buffer> {
+    const records = await this.prisma.attendance.findMany({
+      where: {
+        lessonSession: {
+          lessonDate: {
+            gte: filters.from ? new Date(filters.from) : undefined,
+            lte: filters.to ? new Date(filters.to) : undefined,
+          },
+          subjectId: filters.subjectId ?? undefined,
+        },
+        status: filters.status ?? undefined,
+        studentId: filters.studentId ?? undefined,
+        student: filters.groupId ? { groupId: filters.groupId } : undefined,
+      },
+      include: {
+        student: {
+          include: { group: true },
+        },
+        lessonSession: {
+          include: {
+            subject: true,
+            teacher: true,
+            room: true,
+            pairTime: true,
+          },
+        },
+      },
+      orderBy: [
+        { lessonSession: { lessonDate: 'desc' } },
+        { student: { fullName: 'asc' } },
+      ],
+    });
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'Attendance System';
+    workbook.created = new Date();
+
+    const ws = workbook.addWorksheet('Отчёт посещаемости');
+
+    // ---- Шапка ----
+    ws.mergeCells('A1:G1');
+    const titleCell = ws.getCell('A1');
+    titleCell.value = 'Отчёт посещаемости';
+    titleCell.font = { size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    titleCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF1F4E78' },
+    };
+    ws.getRow(1).height = 36;
+
+    // ---- Строка фильтров ----
+    ws.mergeCells('A2:G2');
+    const filtersArr: string[] = [];
+    if (filters.from)
+      filtersArr.push(
+        `С: ${new Date(filters.from).toLocaleDateString('ru-RU')}`,
+      );
+    if (filters.to)
+      filtersArr.push(
+        `По: ${new Date(filters.to).toLocaleDateString('ru-RU')}`,
+      );
+    if (filters.status) {
+      const statusLabels: Record<string, string> = {
+        PRESENT: 'Присутствовал',
+        LATE: 'Опоздал',
+        ABSENT: 'Отсутствовал',
+        EXCUSED: 'Уважительная',
+        PENDING: 'Ожидание',
+      };
+      filtersArr.push(
+        `Статус: ${statusLabels[filters.status] ?? filters.status}`,
+      );
+    }
+    const filterCell = ws.getCell('A2');
+    filterCell.value = filtersArr.length
+      ? filtersArr.join('   |   ')
+      : 'Все записи';
+    filterCell.font = { size: 10, italic: true, color: { argb: 'FF888888' } };
+    filterCell.alignment = { horizontal: 'center' };
+    ws.getRow(2).height = 20;
+
+    // ---- Заголовки колонок ----
+    ws.columns = [
+      { key: 'date', width: 14 },
+      { key: 'student', width: 32 },
+      { key: 'group', width: 14 },
+      { key: 'subject', width: 26 },
+      { key: 'teacher', width: 28 },
+      { key: 'status', width: 18 },
+      { key: 'checkIn', width: 18 },
+    ];
+
+    const headerRow = ws.getRow(3);
+    headerRow.values = [
+      'Дата',
+      'Студент',
+      'Группа',
+      'Предмет',
+      'Преподаватель',
+      'Статус',
+      'Время отметки',
+    ];
+    headerRow.height = 28;
+    headerRow.eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+      cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF2D3748' },
+      };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF4A5568' } },
+        bottom: { style: 'thin', color: { argb: 'FF4A5568' } },
+        left: { style: 'thin', color: { argb: 'FF4A5568' } },
+        right: { style: 'thin', color: { argb: 'FF4A5568' } },
+      };
+    });
+
+    ws.autoFilter = { from: 'A3', to: 'G3' };
+    ws.views = [{ state: 'frozen', ySplit: 3 }];
+
+    // ---- Цветовая кодировка статусов ----
+    const STATUS_FILL: Record<string, string> = {
+      PRESENT: 'FFC6EFCE',
+      LATE: 'FFFFEB9C',
+      ABSENT: 'FFFFC7CE',
+      EXCUSED: 'FFBDD7EE',
+      PENDING: 'FFEDEDED',
+    };
+    const STATUS_LABEL: Record<string, string> = {
+      PRESENT: 'Присутствовал',
+      LATE: 'Опоздал',
+      ABSENT: 'Отсутствовал',
+      EXCUSED: 'Уважительная',
+      PENDING: 'Ожидание',
+    };
+
+    // ---- Данные ----
+    let rowIdx = 4;
+    for (const rec of records) {
+      const row = ws.getRow(rowIdx++);
+      const lessonDate = new Date(rec.lessonSession.lessonDate);
+
+      row.getCell(1).value = lessonDate.toLocaleDateString('ru-RU');
+      row.getCell(2).value = rec.student.fullName;
+      row.getCell(3).value = rec.student.group.name;
+      row.getCell(4).value = rec.lessonSession.subject.name;
+      row.getCell(5).value = rec.lessonSession.teacher.fullName;
+      row.getCell(6).value = STATUS_LABEL[rec.status] ?? rec.status;
+      row.getCell(7).value = rec.checkIn
+        ? new Date(rec.checkIn).toLocaleTimeString('ru-RU', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '—';
+
+      const statusFill = STATUS_FILL[rec.status] ?? 'FFFFFFFF';
+      row.eachCell((cell, colNum) => {
+        cell.alignment = {
+          vertical: 'middle',
+          horizontal: colNum === 2 ? 'left' : 'center',
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+        if (colNum === 6) {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: statusFill },
+          };
+          cell.font = { bold: true, size: 10 };
+        }
+      });
+      row.height = 22;
+    }
+
+    // ---- Итоговая строка ----
+    const total = records.length;
+    const present = records.filter((r) => r.status === 'PRESENT').length;
+    const late = records.filter((r) => r.status === 'LATE').length;
+    const absent = records.filter((r) => r.status === 'ABSENT').length;
+    const excused = records.filter((r) => r.status === 'EXCUSED').length;
+    const rate =
+      total > 0 ? (((present + late) / total) * 100).toFixed(1) : '0';
+
+    ws.addRow([]);
+    const sumRow = ws.addRow([
+      `Итого: ${total} записей`,
+      `Присутствовал: ${present}`,
+      `Опоздал: ${late}`,
+      `Отсутствовал: ${absent}`,
+      `Уважительная: ${excused}`,
+      `Посещаемость: ${rate}%`,
+      `Сформировано: ${new Date().toLocaleString('ru-RU')}`,
+    ]);
+    sumRow.eachCell((cell) => {
+      cell.font = { bold: true, size: 10 };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFEBF0F7' },
+      };
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer as unknown as Buffer;
+  }
 }
